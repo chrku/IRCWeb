@@ -78,10 +78,34 @@ public class SimpleNetworkTests {
 	}
 	
 	// Test invalid characters in username
-		@Test(expected = IRCInvalidFormatException.class)
-		public void testUserFormatSpecial() throws UnsupportedEncodingException, IRCInvalidFormatException {
+	@Test(expected = IRCInvalidFormatException.class)
+	public void testUserFormatSpecial() throws UnsupportedEncodingException, IRCInvalidFormatException {
+		CommandCreator creator = new CommandCreator();
+		@SuppressWarnings("unused")
+		byte[] nick_cm = creator.generateUser("    ", "john doe");
+	}
+	
+	// Test joining a network
+	// Needs network at localhost/6667
+	@Test()
+	public void testIRCConnection() {
+		try {
+			int portNum = 6667;
+			IRCSocket client = new IRCSocket("localhost", portNum);
 			CommandCreator creator = new CommandCreator();
-			@SuppressWarnings("unused")
-			byte[] nick_cm = creator.generateUser("    ", "john doe");
+			byte[] nickMsg = creator.generateNick("a");
+			byte[] userMsg = creator.generateUser("bla", "bla");
+			client.sendMsg(nickMsg);
+			client.sendMsg(userMsg);
+			client.recvMsg();
+			String out = new String (client.getBuffer(), Charset.forName("utf-8")).trim();
+			System.out.println(out);
+		} catch (IOException e) {
+			e.printStackTrace();
+			Assert.fail("Connection failed");
+		} catch (IRCInvalidFormatException e) {
+			e.printStackTrace();
+			Assert.fail("Connection failed");
 		}
+	}
 }

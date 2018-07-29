@@ -77,8 +77,8 @@ public class CommandCreator {
 		return msg.getBytes("ascii");
 	}
 	
-	public byte[] generateQuit(String channel) {
-		return null;	
+	public byte[] generateQuit(String channel) throws UnsupportedEncodingException {
+		return (QUIT_PREFIX + IRC_SUFFIX).getBytes("ascii");	
 	}
 	
 }
