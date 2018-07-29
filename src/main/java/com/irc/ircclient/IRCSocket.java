@@ -1,6 +1,5 @@
 package com.irc.ircclient;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -43,14 +42,6 @@ public class IRCSocket {
 		msgOut = new DataOutputStream(connectorSocket.getOutputStream());
 		
 		buffer = new byte[bufferSize];
-	}
-	
-	/*
-	 * Attempt to connect to an IRC server
-	 * 
-	 */
-	public void connect() {
-		
 	}
 	
 	public void close() throws IOException {
