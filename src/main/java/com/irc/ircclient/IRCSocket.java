@@ -44,34 +44,37 @@ public class IRCSocket {
 		buffer = new byte[bufferSize];
 	}
 	
-	public void close() throws IOException {
+	public synchronized void close() throws IOException {
 		connectorSocket.close();
 	}
 	
 	/*
 	 * Send a message to the server
 	 */
-	public void sendMsg(byte[] msg) throws IOException {
+	public synchronized void sendMsg(byte[] msg) throws IOException {
 		msgOut.write(msg);
 	}
 	
 	/*
 	 * Receive a message into the local buffer  
 	 */
-	public int recvMsg() throws IOException {
+	public synchronized int recvMsg() throws IOException {
 		return msgIn.read(buffer, 0, bufferSize);
 	}
+	
+	public synchronized int recvMsg(byte[] msg) throws IOException {
+		return msgIn.read(msg, 0, bufferSize);
+	}
 
-	public String getHostName() {
+	public synchronized String getHostName() {
 		return hostName;
 	}
 
-	public int getPortNumber() {
+	public synchronized int getPortNumber() {
 		return portNumber;
 	}
 
-	public byte[] getBuffer() {
+	public synchronized byte[] getBuffer() {
 		return buffer;
 	}
-	
 }

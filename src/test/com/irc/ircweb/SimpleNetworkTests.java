@@ -39,9 +39,9 @@ public class SimpleNetworkTests {
 			Assert.fail("Connection failed");
 		}
 	}
-	
+
 	// Test if malformed nicknames work
-	
+
 	// Test for max length of 9
 	@Test(expected = IRCInvalidFormatException.class)
 	public void testNickLength() throws UnsupportedEncodingException, IRCInvalidFormatException {
@@ -49,7 +49,7 @@ public class SimpleNetworkTests {
 		@SuppressWarnings("unused")
 		byte[] nick_cm = creator.generateNick("aaaaaaaaaa");
 	}
-	
+
 	// Test invalid characters
 	@Test(expected = IRCInvalidFormatException.class)
 	public void testNickFormatSpecial() throws UnsupportedEncodingException, IRCInvalidFormatException {
@@ -57,7 +57,7 @@ public class SimpleNetworkTests {
 		@SuppressWarnings("unused")
 		byte[] nick_cm = creator.generateNick("##üäüä");
 	}
-	
+
 	// Test valid characters
 	@SuppressWarnings("unused")
 	@Test()
@@ -76,7 +76,7 @@ public class SimpleNetworkTests {
 		byte[] nick_cm11 = creator.generateNick("a331");
 		byte[] nick_cm12 = creator.generateNick("a12a");
 	}
-	
+
 	// Test invalid characters in username
 	@Test(expected = IRCInvalidFormatException.class)
 	public void testUserFormatSpecial() throws UnsupportedEncodingException, IRCInvalidFormatException {
@@ -84,7 +84,7 @@ public class SimpleNetworkTests {
 		@SuppressWarnings("unused")
 		byte[] nick_cm = creator.generateUser("    ", "john doe");
 	}
-	
+
 	// Test joining a network
 	// Needs network at localhost/6667
 	@Test()
@@ -100,6 +100,33 @@ public class SimpleNetworkTests {
 			client.recvMsg();
 			String out = new String (client.getBuffer(), Charset.forName("utf-8")).trim();
 			System.out.println(out);
+		} catch (IOException e) {
+			e.printStackTrace();
+			Assert.fail("Connection failed");
+		} catch (IRCInvalidFormatException e) {
+			e.printStackTrace();
+			Assert.fail("Connection failed");
+		}
+	}
+
+	// Test staying for a network, handling very simple messages
+	// Needs network at localhost/6667
+	@Test()
+	public void testIRCSimple() throws InterruptedException {
+		try {
+			int portNum = 6667;
+			IRCSocket client = new IRCSocket("localhost", portNum);
+			CommandCreator creator = new CommandCreator();
+			byte[] nickMsg = creator.generateNick("a");
+			byte[] userMsg = creator.generateUser("bla", "bla");
+			byte[] joinMsg = creator.generateJoin("#users");
+			client.sendMsg(nickMsg);
+			client.sendMsg(userMsg);
+			client.sendMsg(joinMsg);
+			IRCClientHandler handler = new IRCClientHandler(client);
+			Thread.sleep(30000);
+			client.close();
+			handler.join();
 		} catch (IOException e) {
 			e.printStackTrace();
 			Assert.fail("Connection failed");
