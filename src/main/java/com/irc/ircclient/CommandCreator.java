@@ -44,7 +44,7 @@ public class CommandCreator {
 	 * to specify a nickname when connecting to a
 	 * server
 	 */
-	public byte[] generateNick(String nick) throws IRCInvalidFormatException, UnsupportedEncodingException {
+	public synchronized byte[] generateNick(String nick) throws IRCInvalidFormatException, UnsupportedEncodingException {
 		Matcher nickMatcher = nickName.matcher(nick);
 		if (!nickMatcher.matches() || nick.length() > NICK_MAX_LENGTH)
 			throw new IRCInvalidFormatException();
@@ -57,7 +57,7 @@ public class CommandCreator {
 	 * to specify a nickname when connecting to a
 	 * server
 	 */
-	public byte[] generateUser(String user, String real)
+	public synchronized byte[] generateUser(String user, String real)
 			throws UnsupportedEncodingException, IRCInvalidFormatException {
 		Matcher userMatcher = IRCString.matcher(user);
 		String msg = USER_PREFIX + user + " " + HOST + " " + SERVER + " :" + real + IRC_SUFFIX;
@@ -69,7 +69,7 @@ public class CommandCreator {
 	/*
 	 * Generate a command to join a channel on a server
 	 */
-	public byte[] generateJoin(String channel) throws IRCInvalidFormatException, UnsupportedEncodingException {
+	public synchronized byte[] generateJoin(String channel) throws IRCInvalidFormatException, UnsupportedEncodingException {
 		Matcher channelMatcher = channelString.matcher(channel);
 		String msg = JOIN_PREFIX + channel + IRC_SUFFIX;
 		if (msg.length() > MAX_LEN_CMD || !channelMatcher.matches())
@@ -77,7 +77,7 @@ public class CommandCreator {
 		return msg.getBytes("ascii");
 	}
 	
-	public byte[] generateQuit(String channel) throws UnsupportedEncodingException {
+	public synchronized byte[] generateQuit(String channel) throws UnsupportedEncodingException {
 		return (QUIT_PREFIX + IRC_SUFFIX).getBytes("ascii");	
 	}
 	

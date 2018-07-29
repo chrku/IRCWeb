@@ -63,7 +63,7 @@ public class IRCSocket {
 	}
 	
 	public synchronized int recvMsg(byte[] msg) throws IOException {
-		return msgIn.read(msg, 0, bufferSize);
+		return msgIn.read(msg, 0, msg.length);
 	}
 
 	public synchronized String getHostName() {

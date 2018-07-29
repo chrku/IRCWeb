@@ -117,14 +117,18 @@ public class SimpleNetworkTests {
 			int portNum = 6667;
 			IRCSocket client = new IRCSocket("localhost", portNum);
 			CommandCreator creator = new CommandCreator();
-			byte[] nickMsg = creator.generateNick("a");
-			byte[] userMsg = creator.generateUser("bla", "bla");
 			byte[] joinMsg = creator.generateJoin("#users");
-			client.sendMsg(nickMsg);
-			client.sendMsg(userMsg);
+
+			IRCClientHandler handler = new IRCClientHandler(client, creator, "d", "bla", "bla");
+			handler.start();
+			while (!handler.isRegistered()) {
+				Thread.sleep(1000);
+				System.out.println("Is registered: " + handler.isRegistered());
+			}
+			Assert.assertEquals(handler.isRegistrationFailed(), false);
+			Assert.assertEquals(handler.isRunning(), true);
 			client.sendMsg(joinMsg);
-			IRCClientHandler handler = new IRCClientHandler(client);
-			Thread.sleep(30000);
+			System.out.println("Sent join message");
 			client.close();
 			handler.join();
 		} catch (IOException e) {
