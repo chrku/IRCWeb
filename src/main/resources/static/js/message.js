@@ -1,13 +1,16 @@
-// WS message queue
-let msgQueue = []
+
+// WS socket
+var socket = null;
 
 // Get the url for the WS protocol
 function getWSURL() {
     let ws = "";
-    if (window.location.protocol === "https:") 
+    if (window.location.protocol === "https:") {
         ws += "wss://";
-    else
+    }
+    else {
         ws += "ws://";
+    }
     ws += window.location.host + "/ws";
     return ws;
 }
@@ -17,22 +20,26 @@ function getWSURL() {
 
 // Attempt to connect to WS server
 function attemptConnection() {
-    let url = getWSURL();
 
+	let url = getWSURL();
     // We use a custom protocol
-    var socket = new WebSocket(getWSURL(), "");
+    let socket = new WebSocket(url);
 
     // Once the connection is established, we send a connect message
-    socket.onopen = function WSMessageLoop(event) {
-            // Check if there are pending messages
-    if (msgQueue.length > 0) {
-        let msg = msgQueue.pop();
-
-
+    socket.onopen = function(event) {
+    		document.getElementById("login").style.visibility = "visible";
     }
+    
+    socket.onmessage = function(event) {
+    	console.log(event.data);
     }
 
     return socket;
 }
 
-// Wait for websocket rea
+/*
+ * This will fire once the DOM is initialized
+ */
+document.addEventListener("DOMContentLoaded", function() {
+	  socket = attemptConnection();
+});

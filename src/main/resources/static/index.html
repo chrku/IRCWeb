@@ -1,16 +1,28 @@
 <!doctype html>
 
 <html lang="en">
+
+
 <head>
   <meta charset="utf-8">
 
   <title>WEBIRC chat application</title>
   <meta name="description" content="WEBIRC chat application">
-  <script src="./js/message.js" />
+  <script src="./js/message.js"> </script>
+  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
-  <h1> Hello </h1>
-  <button onClick="exampleSendMessage()">Click me</button>
+	<div class="login-page" id="login">
+		<div class="login-box">
+			Server hostname <input type="text"> <br>
+			Port <input type="text"> <br>
+			Nickname <input type="text"> <br>
+			Realname <input type="text"> <br>
+			<button id="submit-login">Submit</button>
+		</div>
+	</div>
 </body>
+
+
 </html>

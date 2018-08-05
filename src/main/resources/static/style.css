@@ -1,0 +1,47 @@
+
+body, html {
+	height: 90%;
+	background-color: #0a1429;
+}
+
+.login-page {
+	width: 100%;
+	min-height: 100%;
+	display: flex;
+	align-items: center;
+    justify-content: center;
+    visibility: hidden;
+}
+
+.login-box {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+    justify-content: center;
+	margin: auto;
+	border: 5px solid black;
+	border-radius: 20px;
+	padding: 20px;
+	height: 100%;
+	background-color: gray;
+}
+
+.login-box > input {
+	clear: both;
+	margin: 5px;
+	background-color: #3366cc;
+	border-radius: 7px;
+	border-color: black;
+	border-style: solid;
+	color: black;
+}
+
+.login-box > button {
+	background-color: #3366cc;
+	border-radius: 7px;
+	border-color: black;
+	border-style: solid;
+	padding: 5px;
+	margin: 10px;
+	color: black;
+}
