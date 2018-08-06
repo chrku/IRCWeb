@@ -46,7 +46,6 @@ public class WSHandler extends TextWebSocketHandler {
 	public void afterConnectionEstablished(WebSocketSession session) throws IOException {
 		// Register session
 		registry.addSession(session.getId());
-		
 		// Signal connection success to session
 		session.sendMessage(creator.generateSuccess());
 	}

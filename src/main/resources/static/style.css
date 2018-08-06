@@ -45,3 +45,46 @@ body, html {
 	margin: 10px;
 	color: black;
 }
+
+@keyframes spinner {
+	from {transform: rotate(0deg);}
+	to {transform: rotate(360deg);}
+}
+
+.loading {
+	position: absolute;
+	z-index: 15;
+	height: 100px;
+	width: 200px;
+	margin-top: -50px;
+  	margin-left: -100px;
+  	top: 50%;
+  	left: 50%;
+  	visibility: hidden;
+  	text-align: center;
+  	color: white;
+}
+
+.loading-spinner {
+	margin: auto;
+	background-color: white;
+	width: 25px;
+	height: 25px;
+	transform-origin: center;
+	animation-duration: 2s;
+	animation-iteration-count: infinite;
+	animation-name: spinner;
+}
+
+.failure-page {
+	position: absolute;
+	z-index: 15;
+	height: 100px;
+	width: 200px;
+	margin-top: -50px;
+  	margin-left: -100px;
+  	top: 50%;
+  	left: 50%;
+  	color: white;
+  	visibility: hidden;
+}
