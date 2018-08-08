@@ -1,5 +1,7 @@
 package com.irc.ircweb;
 
+import java.io.IOException;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.WebSocketHandler;
@@ -13,12 +15,16 @@ public class WSConfig implements WebSocketConfigurer {
 
 	@Override
 	public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-		registry.addHandler(getHandler(), "/ws");
+		try {
+			registry.addHandler(getHandler(), "/ws");
+		} catch (IOException e) {
+			System.exit(-1);
+		}
 		
 	}
 	
 	@Bean
-	public WebSocketHandler getHandler() {
+	public WebSocketHandler getHandler() throws IOException {
 		return new WSHandler();
 	}
 

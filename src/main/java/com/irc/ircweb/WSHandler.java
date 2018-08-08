@@ -3,6 +3,8 @@ package com.irc.ircweb;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.irc.ircclient.IRCConnectionHandler;
 
 import java.io.IOException;
@@ -18,11 +20,12 @@ public class WSHandler extends TextWebSocketHandler {
 	// Helper classes for handling messages
 	private ConnectionRegistry registry;
 	private WSMessageCreator creator;
+	private ObjectMapper mapper;
 	
 	// Worker threads
 	private IRCConnectionHandler handlers[];
 	
-	public WSHandler() {
+	public WSHandler() throws IOException {
 		// Get number of cores
 		int numCores = Runtime.getRuntime().availableProcessors();
 		// Create handler threads
@@ -35,11 +38,25 @@ public class WSHandler extends TextWebSocketHandler {
 		// Create registry and message creator
 		registry = new ConnectionRegistry(handlers);
 		creator = new WSMessageCreator();
+		
+		// Create mapper to decode JSON
+		mapper = new ObjectMapper();
 	}
 	
 	@Override
-	public void handleTextMessage(WebSocketSession session, TextMessage msg) {
+	public void handleTextMessage(WebSocketSession session, TextMessage msg) throws IOException {
+		// Attempt to read JSON data
+		JsonNode jsonData = mapper.readTree(msg.asBytes());
 		
+		// Attempt to get the type of the message
+		JsonNode messageType = jsonData.get("type");
+		switch(messageType.asText()) {
+		case "PING":
+			session.sendMessage(creator.generatePong());
+			break;
+		case "CONNECTION-ATTEMPT":
+			break;
+		}
 	}
 	
 	@Override

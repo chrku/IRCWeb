@@ -88,3 +88,8 @@ body, html {
   	color: white;
   	visibility: hidden;
 }
+
+.error {
+	visibility: hidden;
+	color: red;
+}

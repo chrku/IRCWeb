@@ -1,6 +1,5 @@
 package com.irc.ircweb;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.irc.ircclient.IRCConnectionHandler;
@@ -22,6 +21,9 @@ public class ConnectionRegistry {
 		this.handlers = handlers;
 	}
 	
+	/*
+	 * Get the handler associated with the session id
+	 */
 	public IRCConnectionHandler getHandler(String id) {
 		return handlerMap.get(id);
 	}
@@ -31,6 +33,13 @@ public class ConnectionRegistry {
 	 * @Param id the id of the session
 	 */
 	public void addSession(String id) {
-		
+		// Select connection handler threads in a round-robin
+		// fashion
+		IRCConnectionHandler currentHandler = handlers[index];
+		index++;
+		if (index >= handlers.length) {
+			index = 0;
+		}
+		handlerMap.put(id, currentHandler);
 	}
 }

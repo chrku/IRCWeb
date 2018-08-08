@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketMessage;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -30,6 +31,20 @@ public class WSMessageCreator {
 		// Write the message
 		gen.writeStartObject();
 		gen.writeStringField(typeString, "WS-CONNECTION-SUCCESS");
+		gen.writeEndObject();
+		gen.close();
+		
+		
+		return new TextMessage(out.toByteArray());
+	}
+
+	public TextMessage generatePong() throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		JsonGenerator gen = factory.createGenerator(out);
+		
+		// Write the message
+		gen.writeStartObject();
+		gen.writeStringField(typeString, "PONG");
 		gen.writeEndObject();
 		gen.close();
 		

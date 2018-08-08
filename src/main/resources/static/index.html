@@ -15,11 +15,12 @@
 <body>
 	<div class="login-page" id="login">
 		<div class="login-box">
-			Server hostname <input type="text"> <br>
-			Port <input type="text"> <br>
-			Nickname <input type="text"> <br>
-			Realname <input type="text"> <br>
-			<button id="submit-login">Submit</button>
+			Server hostname <input type="text" id="hostname"> <br>
+			Port <input type="text" id="port"> <br>
+			Nickname <input type="text" id="nick"> <br>
+			Realname (optional) <input type="text" id="realname"> <br>
+			<p class="error" id="login-error"> You need to enter data into the required fields. </p>
+			<button id="submit-login" onclick="connect()">Submit</button>
 		</div>
 	</div>
 	<div class="loading" id="spin">

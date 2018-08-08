@@ -1,6 +1,10 @@
 
 // WS socket
-var socket = null;
+let socket = null;
+let realname = null;
+let nick = null;
+
+const PING_QUERY = {type: "PING"};
 
 // Get the url for the WS protocol
 function getWSURL() {
@@ -41,6 +45,14 @@ function hideFailure() {
 	document.getElementById("failure").style.visibility = "hidden";
 }
 
+function showLoginError() {
+	document.getElementById("login-error").style.visibility = "visible";
+}
+
+function hideLoginError() {
+	document.getElementById("login-error").style.visibility = "hidden";
+}
+
 // Attempt to connect to WS server
 function attemptConnection() {
 
@@ -50,7 +62,9 @@ function attemptConnection() {
 
     // Once the connection is established, we send a connect message
     socket.onopen = function(event) {
-
+    	// Ping the server every 3 seconds
+    	 setInterval(
+    			 function() { socket.send(JSON.stringify(PING_QUERY)); }, 3000);
     }
     
     socket.onmessage = function(event) {
@@ -61,6 +75,8 @@ function attemptConnection() {
     	case "WS-CONNECTION-SUCCESS":
     		hideSpinner();
     		showLoginPage();
+    		break;
+    	case "PONG":
     		break;
     	}
     }
@@ -78,6 +94,30 @@ function attemptConnection() {
     }
 
     return socket;
+}
+
+function connect() {
+	/*
+	 * Get the values of the input fields
+	 */
+	let hostname = document.getElementById("hostname").value;
+	let port = document.getElementById("port").value;
+	nick = document.getElementById("nick").value;
+	realname = document.getElementById("realname").value;
+	if (hostname.length === 0 || port.length === 0 || nick.length === 0) {
+		showLoginError();
+		return;
+	}
+	showSpinner();
+	hideLoginPage();
+	hideLoginError();
+	
+	/*
+	 * Assemble object from form values
+	 */
+	let server_query = {type: "CONNECTION-ATTEMPT", args: [hostname, port]};
+	let ws_query = JSON.stringify(server_query);
+	socket.send(ws_query);
 }
 
 /*
