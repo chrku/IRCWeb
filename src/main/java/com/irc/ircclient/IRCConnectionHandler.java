@@ -2,6 +2,7 @@ package com.irc.ircclient;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -19,6 +20,7 @@ public class IRCConnectionHandler extends Thread {
 	// Connection request queue
 	private ArrayBlockingQueue<ConnectionRequest> connectionRequests;
 	private final int queueSize = 1024;
+	private final int bufSize = 4096;
 	
 	// Indicates an error connection
 	private ErrorConnection err;
@@ -30,12 +32,18 @@ public class IRCConnectionHandler extends Thread {
 	private Selector readSelector;
 	private Selector writeSelector;
 	
+	// For reading partial messages
+	private IRCMessageAssembler assembler;
+	private ByteBuffer buffer;
+	
 	public IRCConnectionHandler() throws IOException {
 		readSelector = Selector.open();
 		writeSelector = Selector.open();
 		err = new ErrorConnection();
 		connections = new HashMap<String, Connection>();
 		connectionRequests = new ArrayBlockingQueue<ConnectionRequest>(queueSize);
+		assembler = new IRCMessageAssembler();
+		buffer = ByteBuffer.allocate(bufSize);
 	}
 	
 	// Add a connection request
@@ -50,9 +58,18 @@ public class IRCConnectionHandler extends Thread {
 			checkConnections();
 			// Next, we select sockets that might be ready for reading
 			readSockets();
+			// Next, we retrieve and parse any complete messages
+			parseMessages();
 		}
 	}
 
+	private void parseMessages() {
+		
+	}
+
+	/*
+	 * Read sockets that are available for reading
+	 */
 	private void readSockets() {
 		try {
 			int readableChannels = readSelector.selectNow();
@@ -60,7 +77,17 @@ public class IRCConnectionHandler extends Thread {
 				// Get all channels that can be read from
 				Set<SelectionKey> selected = readSelector.selectedKeys();
 				for (SelectionKey s : selected) {
-					s.channel();
+					// Retrieve the id and channel
+					String id = (String) s.attachment();
+					SocketChannel channel = (SocketChannel) s.channel();
+					// If socket read fails, that means that there is a connection error
+					try {
+						assembler.readMessage(id, channel, buffer);
+					}
+					catch (IOException e) {
+						channel.close();
+						connections.put(id, err);
+					}
 				}
 			}
 		} catch (IOException e) {
@@ -68,6 +95,9 @@ public class IRCConnectionHandler extends Thread {
 		}
 	}
 
+	/*
+	 * Check for new connections
+	 */
 	private void checkConnections() {
 		// First, we check for new connection request and connect them
 		while (!connectionRequests.isEmpty()) {
