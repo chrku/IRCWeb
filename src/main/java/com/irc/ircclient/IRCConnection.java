@@ -1,7 +1,7 @@
 package com.irc.ircclient;
 
 import java.nio.channels.SocketChannel;
-import java.util.Queue;
+import java.util.LinkedList;
 
 /*
  * This represents an ongoing IRC connection, i.e.
@@ -12,10 +12,11 @@ public class IRCConnection implements Connection {
 	private SocketChannel socket;
 
 	// Message buffer for messages
-	private Queue<String> messageBuffer;
+	private LinkedList<String> messageBuffer;
 	
 	public IRCConnection(SocketChannel newSocket) {
 		this.socket = newSocket;
+		this.messageBuffer = new LinkedList<String>();
 	}
 
 	@Override
@@ -24,7 +25,7 @@ public class IRCConnection implements Connection {
 	}
 
 	@Override
-	public Queue<String> getMessageBuffer() {
+	public LinkedList<String> getMessageBuffer() {
 		return messageBuffer;
 	}
 
