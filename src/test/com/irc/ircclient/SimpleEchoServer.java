@@ -41,8 +41,9 @@ public class SimpleEchoServer extends Thread {
 			// Receive a connection and echo whatever it sends
 			while (isRunning) {
 				try {
-					msgIn.read(buffer, 0, bufferSize);
-					msgOut.write(buffer, 0, bufferSize);
+					int read = msgIn.read(buffer, 0, bufferSize);
+					System.out.println(new String(buffer));
+					msgOut.write(buffer, 0, read);
 				} catch (IOException e) {
 					isRunning = false;
 					System.out.println("[ECHO SERVER]: Error on port" + connection.getLocalPort());
@@ -60,23 +61,19 @@ public class SimpleEchoServer extends Thread {
 	
 	// Server socket and port number
 	private ServerSocket server;
-	private int portNumber;
-	
 	// Collection of all connections that are associated with that server
 	private ArrayList<EchoHandler> connectionPool;
 	
     private boolean isRunning = true;
 	
 	public SimpleEchoServer(int portNumber) throws IOException {
-		this.portNumber = portNumber;
-		
 		server = new ServerSocket(portNumber);
 		connectionPool = new ArrayList<EchoHandler>();
 ;		
 	}
 
 	public int getPortNumber() {
-		return portNumber;
+		return server.getLocalPort();
 	}
 
 	public void run() {
@@ -86,26 +83,26 @@ public class SimpleEchoServer extends Thread {
 				Socket newConnection = server.accept();
 				EchoHandler handler = new EchoHandler(newConnection);
 				connectionPool.add(handler);
-				handler.run();
+				handler.start();
 			} catch (IOException e) {
 				isRunning = false;
 				System.out.println("[ECHO SERVER]: Error while accepting");
 			}
-			for (EchoHandler handler : connectionPool) {
-				handler.setRunning(false);
-			}
-			for (EchoHandler handler : connectionPool) {
-				try {
-					handler.join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+		}
+		for (EchoHandler handler : connectionPool) {
+			handler.setRunning(false);
+		}
+		for (EchoHandler handler : connectionPool) {
 			try {
-				server.close();
-			} catch (IOException e) {
-				System.out.println("[ECHO SERVER]: Error while closing");
+				handler.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
+		}
+		try {
+			server.close();
+		} catch (IOException e) {
+			System.out.println("[ECHO SERVER]: Error while closing");
 		}
 	}
 
