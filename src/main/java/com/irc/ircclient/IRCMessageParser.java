@@ -2,7 +2,6 @@ package com.irc.ircclient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 /*
  * Parses IRC messages, returning the exact message type and arguments
@@ -10,21 +9,15 @@ import java.util.HashMap;
  */
 public class IRCMessageParser {
 	
-	// Provide a mapping between message codes
-	// and our enum
-	static HashMap<String, IRCMessageType> messageMap;
-	static {
-		messageMap = new HashMap<String, IRCMessageType>();
-		messageMap.put("PING" , IRCMessageType.PING);
-		messageMap.put("NOTIFY", IRCMessageType.NOTIFY);
-	}
-	
-	
 	/*
 	 * Skip spaces in between arguments
+	 * 
+	 * @param curIndex current index
+	 * @param message Message to be parsed
+	 * @return int Index after skipping spaces
 	 */
 	private int skipSpaces(int curIndex, byte[] message) {
-		while (curIndex < message.length && message[curIndex] != ' ') {
+		while (curIndex < message.length && message[curIndex] == ' ') {
 			++curIndex;
 		}
 		
@@ -32,25 +25,50 @@ public class IRCMessageParser {
 	}
 	
 	/*
-	 * Skip the message prefix
+	 * Handle the message prefix, which indicates the message origin
+	 * 
+	 * @param curIndex current index in the message
+	 * @param message message to be parsed
+	 * @param args Arguments of the message
+	 * @return int Index after parsing
 	 */
-	private int skipMessagePrefix(int curIndex, byte[] message) {
+	private int handleMessagePrefix(int curIndex, byte[] message, ArrayList<String> args) {
 		// Messages can have an optional prefix
 		// As a client, this can pretty much be ignored
-		if (message[0] == ':') {
+		if (message[curIndex] == ':') {
 			// As we ignore the prefix, we simply skip to the next
 			// delimiter
+			curIndex++;
+			int argStart = curIndex;
 			while (curIndex < message.length && message[curIndex] != ' ') {
 				++curIndex;
 			}
+			// Extract the name and add it as a first argument
+			String arg = new String(Arrays.copyOfRange(message, argStart, curIndex));
+			args.add(arg);
+			
 			// and then skip the other spaces, as there can be arbitrarily 
 			// many
 			curIndex = skipSpaces(curIndex, message);
 		}
+		else {
+			// Add empty sender in absence
+			args.add("");
+		}
 		return curIndex;
 	}
 	
+	/*
+	 * Parse message arguments, including the trailing argument
+	 * 
+	 * @param curIndex current index in the message
+	 * @param message message to be parsed
+	 * @param args message arguments
+	 */
 	private void parseArgs(int curIndex, byte[] message, ArrayList<String> args) {
+
+		curIndex = skipSpaces(curIndex, message);
+		
 		int argStart = curIndex;
 		
 		// According to RFC 1459, there are two types of parameters
@@ -58,12 +76,16 @@ public class IRCMessageParser {
 		// spaces.
 		
 		// Read until colon or CRLF
-		while (curIndex < message.length && message[curIndex] != '\r'
-			&& message[curIndex] != ':') {
+		while (curIndex < message.length) {
 			// Check for argument delimiter
-			if (message[curIndex] == ' ') {
-				String arg = new String(Arrays.copyOfRange(message, argStart, curIndex));
-				args.add(arg);
+			if (message[curIndex] == ' ' || message[curIndex] == '\r'
+					|| message[curIndex] == ':') {
+				if (curIndex != argStart) {
+					String arg = new String(Arrays.copyOfRange(message, argStart, curIndex));
+					args.add(arg);
+				}
+				if (message[curIndex] == '\r' || message[curIndex] == ':')
+					break;
 				curIndex = skipSpaces(curIndex, message);
 				argStart = curIndex;
 			}
@@ -73,7 +95,7 @@ public class IRCMessageParser {
 		}
 		
 		// Now handle colon arguments separately
-		if (message[curIndex] == ':') {
+		if (curIndex < message.length && message[curIndex] == ':') {
 			++curIndex;
 			if (curIndex < message.length) {
 				
@@ -89,15 +111,23 @@ public class IRCMessageParser {
 		}
 	}
 	
+	/*
+	 * Parse an IRC message, returning a type that 
+	 * contains the command and the arguments
+	 * 
+	 * @param message the raw message
+	 * @return IRCMessage the parsed message
+	 */
 	public IRCMessage parseMessage(byte[] message) {
 
 		int curIndex = 0;
+		ArrayList<String> args = new ArrayList<String>();
 		
 		if (message.length == 0) {
 			return new IRCMessage(null, null);
 		}
 		
-		curIndex = skipMessagePrefix(curIndex, message);
+		curIndex = handleMessagePrefix(curIndex, message, args);
 		
 		// Check if we reached the end
 		if (curIndex >= message.length) {
@@ -106,26 +136,20 @@ public class IRCMessageParser {
 
 		// Next comes the command string
 		int cmdStart = curIndex;
-		while (curIndex < message.length && message[curIndex] != ' ') {
+		while (curIndex < message.length && message[curIndex] != ' ' && message[curIndex] != '\r') {
 			++curIndex;
 		}
 		
 		// Now try to decode the command
 		String command = new String(Arrays.copyOfRange(message, cmdStart, curIndex));
 		
-		IRCMessageType type = messageMap.get(command);
-		
 		// Check for valid message
-		if (type == null) {
+		if (command == "") {
 			return new IRCMessage(null, null);
 		}
-
-		curIndex = skipSpaces(curIndex, message);
-		
-		ArrayList<String> args = new ArrayList<String>();
 		
 		parseArgs(curIndex, message, args);
 		
-		return new IRCMessage(type, args);
+		return new IRCMessage(command, args);
 	}
 }

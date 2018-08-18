@@ -16,8 +16,17 @@ public class ErrorConnection implements Connection {
 	}
 
 	@Override
-	public Queue<String> getMessageBuffer() {
+	public Queue<IRCMessage> getMessageBuffer() {
 		return null;
+	}
+
+	@Override
+	public IRCMessage pollMessage() {
+		return null;
+	}
+
+	@Override
+	public void addMessage(IRCMessage message) {
 	}
 
 }

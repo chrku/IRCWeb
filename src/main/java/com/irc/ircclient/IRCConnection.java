@@ -12,11 +12,11 @@ public class IRCConnection implements Connection {
 	private SocketChannel socket;
 
 	// Message buffer for messages
-	private LinkedList<String> messageBuffer;
+	private LinkedList<IRCMessage> messageBuffer;
 	
 	public IRCConnection(SocketChannel newSocket) {
 		this.socket = newSocket;
-		this.messageBuffer = new LinkedList<String>();
+		this.messageBuffer = new LinkedList<IRCMessage>();
 	}
 
 	@Override
@@ -25,12 +25,22 @@ public class IRCConnection implements Connection {
 	}
 
 	@Override
-	public LinkedList<String> getMessageBuffer() {
+	public LinkedList<IRCMessage> getMessageBuffer() {
 		return messageBuffer;
 	}
 
 	@Override
 	public boolean isConnected() {
 		return true;
+	}
+
+	@Override
+	public IRCMessage pollMessage() {
+		return messageBuffer.poll();
+	}
+
+	@Override
+	public void addMessage(IRCMessage message) {
+		messageBuffer.add(message);
 	}
 }

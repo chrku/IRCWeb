@@ -7,20 +7,19 @@ import java.util.ArrayList;
  */
 public class IRCMessage {
 	
-	private IRCMessageType type;
+	private String type;
 	private ArrayList<String> args;
 	
-	public IRCMessage(IRCMessageType type, ArrayList<String> args2) {
-		super();
+	public IRCMessage(String type, ArrayList<String> args2) {
 		this.type = type;
 		this.args = args2;
 	}
 
-	public IRCMessageType getType() {
+	public String getType() {
 		return type;
 	}
 
-	public void setType(IRCMessageType type) {
+	public void setType(String type) {
 		this.type = type;
 	}
 

@@ -6,5 +6,7 @@ import java.util.Queue;
 public interface Connection {
 	public boolean isConnected();
 	public SocketChannel getSocket();
-	public Queue<String> getMessageBuffer();
+	public Queue<IRCMessage> getMessageBuffer();
+	public IRCMessage pollMessage();
+	public void addMessage(IRCMessage message);
 }

@@ -23,12 +23,11 @@ public class IRCMessageHandler {
 	public void handleMessage(String id, IRCMessage msg) throws IOException {
 		// Determine what to do based on the message type
 		switch (msg.getType()) {
-		case NOTIFY:
-			break;
-		case PING:
+		case "PING":
 			senders.get(id).addMessage(PING_RESPONSE, id);
 			break;
 		default:
+			connections.get(id).addMessage(msg);
 			break;
 		}
 	}
