@@ -42,4 +42,8 @@ public class ConnectionRegistry {
 		}
 		handlerMap.put(id, currentHandler);
 	}
+
+	public void removeSession(String id) {
+		handlerMap.remove(id);
+	}
 }

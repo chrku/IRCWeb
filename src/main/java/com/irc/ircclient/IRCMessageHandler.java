@@ -9,13 +9,13 @@ import java.util.HashMap;
  */
 public class IRCMessageHandler {
 	
-	private HashMap<String, Connection> connections;
+	private HashMap<String, IRCConnection> connections;
 	private HashMap<String, IRCMessageSender> senders;
 	
 	private static final byte[] MSG_SUFFIX = "\r\n".getBytes();
 	private static final byte[] PING_RESPONSE = ("PONG" + MSG_SUFFIX).getBytes(); 
 	
-	public IRCMessageHandler(HashMap<String, Connection> connections, HashMap<String, IRCMessageSender> senders) {
+	public IRCMessageHandler(HashMap<String, IRCConnection> connections, HashMap<String, IRCMessageSender> senders) {
 		this.connections = connections;
 		this.senders = senders;
 	} 

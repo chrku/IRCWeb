@@ -4,6 +4,8 @@ let socket = null;
 let realname = null;
 let nick = null;
 
+let messages = [];
+
 const PING_QUERY = {type: "PING"};
 
 // Get the url for the WS protocol
@@ -62,9 +64,6 @@ function attemptConnection() {
 
     // Once the connection is established, we send a connect message
     socket.onopen = function(event) {
-    	// Ping the server every 3 seconds
-    	 setInterval(
-    			 function() { socket.send(JSON.stringify(PING_QUERY)); }, 3000);
     }
     
     socket.onmessage = function(event) {
@@ -77,6 +76,10 @@ function attemptConnection() {
     		showLoginPage();
     		break;
     	case "PONG":
+    		break;
+    	case "NEW-MESSAGES":
+    		break;
+    	case "NO-NEW-MESSAGES":
     		break;
     	}
     }
@@ -115,8 +118,18 @@ function connect() {
 	/*
 	 * Assemble object from form values
 	 */
-	let server_query = {type: "CONNECTION-ATTEMPT", args: [hostname, port]};
+	let server_query = {type: "CONNECTION-ATTEMPT", "hostname": hostname, "port": port};
 	let ws_query = JSON.stringify(server_query);
+	socket.send(ws_query);
+	
+	setInterval(function() {
+		checkMessages();
+	}, 1000);
+}
+
+function checkMessages() {
+	let message_query = {type : "READ-MESSAGES"};
+	let ws_query = JSON.stringify(message_query);
 	socket.send(ws_query);
 }
 

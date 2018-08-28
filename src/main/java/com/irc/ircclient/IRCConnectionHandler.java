@@ -22,12 +22,10 @@ public class IRCConnectionHandler extends Thread {
 	private final int queueSize = 1024;
 	private final int bufSize = 4096;
 	
-	// Indicates an error connection
-	private ErrorConnection err;
-	
 	private boolean running = true;
-	private HashMap<String, Connection> connections;
+	private HashMap<String, IRCConnection> connections;
 	private HashMap<String, IRCMessageSender> senders;
+	private HashMap<String, Boolean> pending;
 	
 	// For multiplexing the socket connections
 	private Selector readSelector;
@@ -44,9 +42,9 @@ public class IRCConnectionHandler extends Thread {
 	public IRCConnectionHandler() throws IOException {
 		this.readSelector = Selector.open();
 		this.writeSelector = Selector.open();
-		this.err = new ErrorConnection();
-		this.connections = new HashMap<String, Connection>();
+		this.connections = new HashMap<String, IRCConnection>();
 		this.connectionRequests = new ArrayBlockingQueue<ConnectionRequest>(queueSize);
+		this.pending = new HashMap<String, Boolean>();
 		this.assembler = new IRCMessageAssembler();
 		this.buffer = ByteBuffer.allocate(bufSize);
 		this.senders = new HashMap<String, IRCMessageSender>();
@@ -54,8 +52,19 @@ public class IRCConnectionHandler extends Thread {
 		this.handler = new IRCMessageHandler(connections, senders);
 	}
 	
+	public boolean isPending(String id) {
+		return pending.get(id) != null;
+	}
+	
+	public IRCConnection getConnection(String id) {
+		return connections.get(id);
+	}
+	
 	// Add a connection request
 	public void addConnectionRequest(ConnectionRequest c) throws InterruptedException {
+		writeSelector.wakeup();
+		readSelector.wakeup();
+		pending.put(c.getId(), true);
 		connectionRequests.put(c);
 	}
 	
@@ -77,7 +86,7 @@ public class IRCConnectionHandler extends Thread {
 	private void sendPendingMessages() {
 		int amount;
 		try {
-			amount = writeSelector.selectNow();
+			amount = writeSelector.select(100);
 		} catch (IOException e1) {
 			return;
 		}
@@ -105,7 +114,7 @@ public class IRCConnectionHandler extends Thread {
 				e.printStackTrace();
 			}
 		}
-		connections.put(id, err);
+		connections.remove(id);
 	}
 	
 	private void parseAndHandleMessages() {
@@ -126,20 +135,35 @@ public class IRCConnectionHandler extends Thread {
 	 */
 	private void readSockets() {
 		try {
-			int readableChannels = readSelector.selectNow();
+			int readableChannels = readSelector.select(100);
 			if (readableChannels > 0) {
+				System.out.println("New messages");
 				// Get all channels that can be read from
 				Set<SelectionKey> selected = readSelector.selectedKeys();
 				for (SelectionKey s : selected) {
-					// Retrieve the id and channel
-					String id = (String) s.attachment();
-					SocketChannel channel = (SocketChannel) s.channel();
-					// If socket read fails, that means that there is a connection error
-					try {
-						assembler.readMessage(id, channel, buffer);
+					if (s.isReadable()) {
+						// Retrieve the id and channel
+						String id = (String) s.attachment();
+						SocketChannel channel = (SocketChannel) s.channel();
+						// If socket read fails, that means that there is a connection error
+						try {
+							assembler.readMessage(id, channel, buffer);
+						}
+						catch (IOException e) {
+							removeConnection(id);
+						}
 					}
-					catch (IOException e) {
-						removeConnection(id);
+					if (s.isConnectable()) {
+						SocketChannel channel = (SocketChannel) s.channel();
+						String id = (String) s.attachment();
+						try {
+						    if (channel.finishConnect()) {
+								s.interestOps(SelectionKey.OP_READ);
+							}
+						}
+						catch (IOException e) {
+							removeConnection(id);
+						}
 					}
 				}
 			}
@@ -170,14 +194,14 @@ public class IRCConnectionHandler extends Thread {
 	private void connectID(String id, String hostname, int port) {
 		try {
 			// Try connecting to the server
-			System.out.println("New connection attempt, hostname: " + hostname + "port: " + port);
+			System.out.println("New connection attempt, hostname: " + hostname + " port: " + port);
 			SocketChannel newSocket = SocketChannel.open();
 			
 			// To use the selector to multiplex connections,
 			// the socket needs to be non-blocking
 			newSocket.configureBlocking(false);
 			// Register with the selector
-			SelectionKey s1 = newSocket.register(readSelector, SelectionKey.OP_READ);
+			SelectionKey s1 = newSocket.register(readSelector, SelectionKey.OP_CONNECT);
 			s1.attach(id);
 			
 			// Create new message sender
@@ -188,8 +212,12 @@ public class IRCConnectionHandler extends Thread {
 			newSocket.connect(new InetSocketAddress(hostname, port));
 			IRCConnection newConnection = new IRCConnection(newSocket);
 			connections.put(id, newConnection);
+			pending.remove(id);
+			System.out.println("Connection succeeded");
 		} catch (IOException e) {
 			// Null value indicates error
+			System.out.println("Connection failed");
+			pending.remove(id);
 			removeConnection(id);
 		}
 	}

@@ -7,9 +7,10 @@ import java.util.LinkedList;
  * This represents an ongoing IRC connection, i.e.
  * the sockets and the message receive buffer
  */
-public class IRCConnection implements Connection {
+public class IRCConnection {
 	// Non-blocking socket
 	private SocketChannel socket;
+	private final int MAX_SIZE = 128;
 
 	// Message buffer for messages
 	private LinkedList<IRCMessage> messageBuffer;
@@ -19,28 +20,25 @@ public class IRCConnection implements Connection {
 		this.messageBuffer = new LinkedList<IRCMessage>();
 	}
 
-	@Override
 	public SocketChannel getSocket() {
 		return socket;
 	}
 
-	@Override
-	public LinkedList<IRCMessage> getMessageBuffer() {
+	public synchronized LinkedList<IRCMessage> getMessageBuffer() {
 		return messageBuffer;
 	}
 
-	@Override
 	public boolean isConnected() {
 		return true;
 	}
 
-	@Override
 	public IRCMessage pollMessage() {
 		return messageBuffer.poll();
 	}
 
-	@Override
 	public void addMessage(IRCMessage message) {
+		while (messageBuffer.size() > MAX_SIZE)
+			messageBuffer.pop();
 		messageBuffer.add(message);
 	}
 }
