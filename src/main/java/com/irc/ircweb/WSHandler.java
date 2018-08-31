@@ -74,44 +74,50 @@ public class WSHandler extends TextWebSocketHandler {
 			int port = jsonData.get("port").asInt();
 			System.out.println("Attempting to connect to connection: " + hostname + ":" + port);
 			// Check for existing connection
-			if (handler.getConnection(id) == null)
-				handler.addConnectionRequest(new ConnectionRequest(session.getId(), hostname, port));
+			synchronized (handler) {
+				if (handler.getConnection(id) == null)
+					handler.addConnectionRequest(new ConnectionRequest(session.getId(), hostname, port));
+			}
 			break;
 		case "SEND-IRC-MESSAGE":
 			// Check if the connection has not yet been processed
-			if (handler.isPending(id) == true) {
-				session.sendMessage(creator.generateConnectionPending());
-				return;
+			synchronized (handler) {
+				if (handler.isPending(id) == true) {
+					session.sendMessage(creator.generateConnectionPending());
+					return;
+				}
+				if (handler.getConnection(id) == null) {
+					session.sendMessage(creator.generateConnectionError());
+					return;
+				}
+				// Forward message to server
+				handler.sendMessage(id, jsonData.get("message").asText().getBytes());
 			}
-			if (handler.getConnection(id) == null) {
-				session.sendMessage(creator.generateConnectionError());
-				return;
-			}
-			// Forward message to server
-			handler.sendMessage(id, jsonData.get("message").asText().getBytes());
 			break;
 		case "READ-MESSAGES":
-			// Check if the connection has not yet been processed
-			if (handler.isPending(id) == true) {
-				session.sendMessage(creator.generateConnectionPending());
-				return;
-			}
-			if (handler.getConnection(id) == null) {
-				session.sendMessage(creator.generateConnectionError());
-				return;
-			}
-			
-			if (handler.getConnection(id).getMessageBuffer().isEmpty()) {
-				session.sendMessage(creator.noNewMessages());
-			}
-			else {
-				ArrayList<IRCMessage> newMessages = new ArrayList<IRCMessage>();
+			synchronized (handler) {
+				// Check if the connection has not yet been processed
+				if (handler.isPending(id) == true) {
+					session.sendMessage(creator.generateConnectionPending());
+					return;
+				}
+				if (handler.getConnection(id) == null) {
+					session.sendMessage(creator.generateConnectionError());
+					return;
+				}
 				
-				while (!handler.getConnection(id).getMessageBuffer().isEmpty()) {
-					newMessages.add(handler.getConnection(id).getMessageBuffer().poll());
-				} 
-				
-				session.sendMessage(creator.newMessages(newMessages));
+				if (handler.getConnection(id).getMessageBuffer().isEmpty()) {
+					session.sendMessage(creator.noNewMessages());
+				}
+				else {
+					ArrayList<IRCMessage> newMessages = new ArrayList<IRCMessage>();
+					
+					while (!handler.getConnection(id).getMessageBuffer().isEmpty()) {
+						newMessages.add(handler.getConnection(id).getMessageBuffer().poll());
+					} 
+					
+					session.sendMessage(creator.newMessages(newMessages));
+				}
 			}
 			break;
 		}
@@ -132,14 +138,18 @@ public class WSHandler extends TextWebSocketHandler {
 		IRCConnectionHandler handler = registry.getHandler(session.getId());
 		if (handler == null)
 			System.out.println("ERROR");
-		handler.removeConnection(session.getId());
+		synchronized (handler) {
+			handler.removeConnection(session.getId());
+		}
 		registry.removeSession(session.getId());
 	}
 	
 	@Override
 	public void handleTransportError(WebSocketSession session, java.lang.Throwable exception) {
 		IRCConnectionHandler handler = registry.getHandler(session.getId());
-		handler.removeConnection(session.getId());
+		synchronized (handler) {
+			handler.removeConnection(session.getId());
+		}
 		registry.removeSession(session.getId());
 	}
 	

@@ -65,35 +65,34 @@ public class IRCMessageAssembler {
 		
 		// Read some data into the buffer
  		buf.clear();
-		channel.read(buf);
-
-		buf.flip();
-		// Read from the socket
-		if (buf.remaining() > 0) {
-			// Check if we have some partial message already
-			byte[] newMsg;
-			if (partialMessages.get(id) != null) {
-				
-				byte[] partial = partialMessages.get(id);
-				newMsg = new byte[partial.length + buf.limit()];
-				// Copy the partial message into the new array
-				System.arraycopy(partial, 0, newMsg, 0, partial.length);
-
-				// ... and then the new message
-				buf.get(newMsg, partial.length, buf.limit());
-				partialMessages.remove(id);
+ 		while (channel.read(buf) > 0) {
+			buf.flip();
+			// Read from the socket
+			if (buf.remaining() > 0) {
+				// Check if we have some partial message already
+				byte[] newMsg;
+				if (partialMessages.get(id) != null) {
+					
+					byte[] partial = partialMessages.get(id);
+					newMsg = new byte[partial.length + buf.limit()];
+					// Copy the partial message into the new array
+					System.arraycopy(partial, 0, newMsg, 0, partial.length);
+	
+					// ... and then the new message
+					buf.get(newMsg, partial.length, buf.limit());
+					partialMessages.remove(id);
+				}
+				else {
+					newMsg = new byte[buf.limit()];
+					buf.get(newMsg, 0, buf.limit());
+				}
+				buf.clear();
+				parseMessage(newMsg, id);
 			}
 			else {
-				newMsg = new byte[buf.limit()];
-				buf.get(newMsg, 0, buf.limit());
+				buf.clear();
 			}
-			buf.clear();
-			parseMessage(newMsg, id);
-		}
-		else {
-			buf.clear();
-		}
-		
+ 		}
 	}
 
 	/*
@@ -105,6 +104,7 @@ public class IRCMessageAssembler {
 		// Look for the delimiter in messages
 		int curIndex = 0;
 		boolean delim1 = false;
+		System.out.println("[IRCMessageAssembler] Trying to parse message: " + new String(newMsg));
 		for (int i = 0; i < newMsg.length; ++i) {
 			if (delim1 && (char) newMsg[i] == DELIM_2) {
 				delim1 = false;
@@ -113,6 +113,7 @@ public class IRCMessageAssembler {
 				System.arraycopy(newMsg, curIndex, msg, 0, i - curIndex + 1);
 				messageQueue.add(new Message(id, msg));
 				curIndex = i + 1;
+				System.out.println("[IRCMessageAssembler] Entire new message read: " + new String(msg));
 			}
 			else if ((char) newMsg[i] == DELIM_1) {
 				delim1 = true;

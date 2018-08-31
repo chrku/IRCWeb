@@ -23,6 +23,8 @@ public class IRCConnectionHandler extends Thread {
 	private final int bufSize = 4096;
 	
 	private boolean running = true;
+	
+	
 	private HashMap<String, IRCConnection> connections;
 	private HashMap<String, IRCMessageSender> senders;
 	private HashMap<String, Boolean> pending;
@@ -88,13 +90,15 @@ public class IRCConnectionHandler extends Thread {
 		// it is stuck waiting for messages
 		readSelector.wakeup();
 		
-		IRCMessageSender sender = senders.get(id);
-		try {
-			sender.addMessage(message, id);
-		} catch (IOException e) {
-			// This can throw a closed channel exception, in 
-			// which case we kill the connection
-			removeConnection(id);
+		synchronized (this) {
+			IRCMessageSender sender = senders.get(id);
+			try {
+				sender.addMessage(message, id);
+			} catch (IOException e) {
+				// This can throw a closed channel exception, in 
+				// which case we kill the connection
+				removeConnection(id);
+			}
 		}
 	}
 
@@ -109,38 +113,46 @@ public class IRCConnectionHandler extends Thread {
 			Set<SelectionKey> selected = writeSelector.selectedKeys();
 			for (SelectionKey s : selected) {
 				String id = (String) s.attachment();
-				IRCMessageSender sender = senders.get(id);
-				try {
-					sender.writeMessages();
-				} catch (IOException e) {
-					removeConnection(id);
+				synchronized (this) {
+					IRCMessageSender sender = senders.get(id);
+					try {
+						sender.writeMessages();
+					} catch (IOException e) {
+						System.out.println("[IRC Message sender] Error when sending message");
+						removeConnection(id);
+					}
 				}
 			}
+			selected.clear();
 		}
 		
 	}
 
 	public void removeConnection(String id) {
-		senders.remove(id);
-		if (connections.containsKey(id)) {
-			try {
-				connections.get(id).getSocket().close();
-			} catch (IOException e) {
-				e.printStackTrace();
+		synchronized (this) {
+			senders.remove(id);
+			if (connections.containsKey(id)) {
+				try {
+					connections.get(id).getSocket().close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
-		}
-		connections.remove(id);
+			connections.remove(id);
+		}	
 	}
 	
 	private void parseAndHandleMessages() {
 		// Handle all the newly assembled messages
-		while (!assembler.messageQueueIsEmpty()) {
-			Message msg = assembler.pollMessageQueue();
-			IRCMessage message = parser.parseMessage(msg.getContent());
-			try {
-				handler.handleMessage(msg.getId(), message);
-			} catch (IOException e) {
-				removeConnection(msg.getId());
+		synchronized(this) {
+			while (!assembler.messageQueueIsEmpty()) {
+				Message msg = assembler.pollMessageQueue();
+				IRCMessage message = parser.parseMessage(msg.getContent());
+				try {
+					handler.handleMessage(msg.getId(), message);
+				} catch (IOException e) {
+					removeConnection(msg.getId());
+				}
 			}
 		}
 	}
@@ -151,8 +163,9 @@ public class IRCConnectionHandler extends Thread {
 	private void readSockets() {
 		try {
 			int readableChannels = readSelector.select();
+			System.out.println("[IRC Message Builder] " + readableChannels + " channels readable");
+
 			if (readableChannels > 0) {
-				System.out.println("New messages");
 				// Get all channels that can be read from
 				Set<SelectionKey> selected = readSelector.selectedKeys();
 				for (SelectionKey s : selected) {
@@ -165,6 +178,7 @@ public class IRCConnectionHandler extends Thread {
 							assembler.readMessage(id, channel, buffer);
 						}
 						catch (IOException e) {
+							System.out.println("[IRC Message Builder] Removing connection");
 							removeConnection(id);
 						}
 					}
@@ -181,6 +195,7 @@ public class IRCConnectionHandler extends Thread {
 						}
 					}
 				}
+				selected.clear();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -192,18 +207,11 @@ public class IRCConnectionHandler extends Thread {
 	 */
 	private void checkConnections() {
 		// First, we check for new connection request and connect them
+		// No synchronization necessary since we use a thread safe queue
 		while (!connectionRequests.isEmpty()) {
 			ConnectionRequest c = connectionRequests.poll();
 			connectID(c.getId(), c.getHostname(), c.getPort());
 		}
-	}
-
-	public synchronized boolean isRunning() {
-		return running;
-	}
-
-	public synchronized void setRunning(boolean running) {
-		this.running = running;
 	}
 
 	private void connectID(String id, String hostname, int port) {
@@ -221,19 +229,31 @@ public class IRCConnectionHandler extends Thread {
 			
 			// Create new message sender
 			IRCMessageSender sender = new IRCMessageSender(writeSelector, newSocket);
-			senders.put(id, sender);
 			
 			// Connect the socket channel
 			newSocket.connect(new InetSocketAddress(hostname, port));
 			IRCConnection newConnection = new IRCConnection(newSocket);
-			connections.put(id, newConnection);
-			pending.remove(id);
+			synchronized (this) {
+				senders.put(id, sender);
+				connections.put(id, newConnection);
+				pending.remove(id);
+			}
 			System.out.println("Connection succeeded");
 		} catch (IOException e) {
 			// Null value indicates error
 			System.out.println("Connection failed");
-			pending.remove(id);
-			removeConnection(id);
+			synchronized (this) {
+				pending.remove(id);
+				removeConnection(id);
+			}
 		}
+	}
+
+	public synchronized boolean isRunning() {
+		return running;
+	}
+
+	public synchronized void setRunning(boolean running) {
+		this.running = running;
 	}
 }

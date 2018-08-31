@@ -4,12 +4,8 @@ let socket = null;
 let realname = null;
 let nick = null;
 
-// Chat state
-let connectedToIRCServer = false;
-
-let messages = [];
-
-const PING_QUERY = {type: "PING"};
+// Unique id for each connection
+let IDCounter = 0;
 
 // Get the url for the WS protocol
 function getWSURL() {
@@ -26,11 +22,11 @@ function getWSURL() {
 
 
 // UI utility functions
-function showLoginPage() {
+function showLogin() {
 	document.getElementById("login").style.display = "flex";
 }
 
-function hideLoginPage() {
+function hideLogin() {
 	document.getElementById("login").style.display = "none";
 }
 
@@ -43,7 +39,7 @@ function hideSpinner() {
 }
 
 function showFailure() {
-	document.getElementById("failure").style.display = "";
+	document.getElementById("failure").style.display = "block";
 }
 
 function hideFailure() {
@@ -64,6 +60,35 @@ function showChatArea() {
 
 function hideChatArea() {
 	document.getElementById("chat-page").style.display = "none";
+}
+
+// UI state functions
+function showLoginPage() {
+	hideSpinner();
+	hideFailure();
+	hideChatArea();
+	showLogin();
+}
+
+function showLoadPage() {
+	hideLogin();
+	hideFailure();
+	hideChatArea();
+	showSpinner();
+}
+
+function showFailurePage() {
+	hideLogin();
+	hideFailure();
+	hideChatArea();
+	showFailure();
+}
+
+function showChatPage() {
+	hideLogin();
+	hideFailure();
+	hideSpinner();
+	showChatArea();
 }
 
 // Functions for displaying messages
@@ -93,6 +118,22 @@ function createDefaultChatNode(sender, text) {
 	return node;
 }
 
+function createTextNode(text) {
+	// Create a new node to be displayed
+	let node = document.createElement("div");
+
+	let chat_text = document.createElement("span");
+	let chat_text_text = document.createTextNode(text);
+	chat_text.classList.add("text-chat");
+	node.classList.add("chat-node");
+	
+	chat_text.appendChild(chat_text_text);
+	
+	node.appendChild(chat_text);
+	
+	return node;
+}
+
 function appendToMainChatWindow(node) {
 	document.getElementById("chat-area").appendChild(node);
 }
@@ -101,13 +142,31 @@ function appendToMainChatWindow(node) {
 function handleMessage(message) {
 	switch(message.type) {
 	case "NOTICE":
-		
 		// Create chat node and append it to the chat window
 		appendToMainChatWindow(createDefaultChatNode(message.args[1], message.args[2]));
+		break;
+	// These are all greeting messages
+	// End of MotD/No MotD will be handed separately
+	case "001": case "002": case "003": case "042": case "372": case "374": case "375":
+	case "376":
+		appendToMainChatWindow(createTextNode(message.args[1]));
+	case "004": 
 		break;
 	default:
 		break;
 	}
+}
+
+// Setup the initial handshake with the server,
+// i.e. transmit the USER and NICK messages
+// according to RFC 1459
+function setupInitialHandshake(socket) {
+	let nick_irc_message = "NICK " + nick + "\r\n";
+	let nick_json = {type: "SEND-IRC-MESSAGE", message: nick_irc_message};
+	let user_irc_message = "USER webirc webirc webirc :" + realname + "\r\n";
+	let user_json = {type: "SEND-IRC-MESSAGE", message: user_irc_message};
+	socket.send(JSON.stringify(nick_json));
+	socket.send(JSON.stringify(user_json));
 }
 
 // Attempt to connect to WS server
@@ -117,67 +176,71 @@ function attemptConnection() {
     // We use a custom protocol
     let socket = new WebSocket(url);
     
+    socket.id = IDCounter;
+    socket.IRCConnectionEstablished = false;
+    socket.showChatWindow = false;
+    socket.initialHandshakeCompleted = false;
+    
+    IDCounter += 1;
+    
     socket.onmessage = function(event) {
     	console.log(event.data);
     	// Message format is JSON
     	let response = JSON.parse(event.data);
     	switch (response.type) {
     	case "WS-CONNECTION-SUCCESS":
-    		hideSpinner();
     		showLoginPage();
     		break;
-    	case "PONG":
-    		break;
     	case "NEW-MESSAGES":
-    		if (!connectedToIRCServer)
-    			connectedToIRCServer = true;
+    		if (this.IRCConnectionEstablished == false) {
+    			this.IRCConnectionEstablished = true;
+    		}
     		response.args.forEach(handleMessage);
     		break;
     	case "NO-NEW-MESSAGES":
-    		if (!connectedToIRCServer)
-    			connectedToIRCServer = true;
+    		if (this.IRCConnectionEstablished == false) {
+    			this.IRCConnectionEstablished = true;
+    		}
+    		break;
+    	case "FAILURE-CONNECTION-ERROR":
+        	showFailurePage();
     		break;
     	}
-    	if (connectedToIRCServer) {
-    		hideSpinner();
-    		showChatArea();
+    	if (this.IRCConnectionEstablished && this.showChatWindow == false) {
+    		this.showChatWindow = true;
+    		showChatPage();
+    		setupInitialHandshake(this);
     	}
     }
     
     socket.onclose = function() {
-    	hideSpinner();
-    	hideLoginPage();
-    	showFailure();
-	}
+    	showFailurePage();
+    }
     
     socket.onerror = function() {
-    	hideSpinner();
-    	hideLoginPage();
-    	showFailure();
+    	showFailurePage();
     }
 
     return socket;
 }
 
 function connect() {
-	/*
-	 * Get the values of the input fields
-	 */
+	
+	// Get the values of the input fields
 	let hostname = document.getElementById("hostname").value;
 	let port = document.getElementById("port").value;
+	// Nick and hostname are global since they are needed later
 	nick = document.getElementById("nick").value;
 	realname = document.getElementById("realname").value;
 	if (hostname.length === 0 || port.length === 0 || nick.length === 0) {
 		showLoginError();
 		return;
 	}
-	showSpinner();
-	hideLoginPage();
-	hideLoginError();
 	
-	/*
-	 * Assemble object from form values
-	 */
+	hideLoginError();
+	showLoadPage();
+	
+	// Assemble object from form values
 	let server_query = {type: "CONNECTION-ATTEMPT", "hostname": hostname, "port": port};
 	let ws_query = JSON.stringify(server_query);
 	socket.send(ws_query);
@@ -197,6 +260,6 @@ function checkMessages() {
  * This will fire once the DOM is initialized
  */
 document.addEventListener("DOMContentLoaded", function() {
-	  showSpinner();
+	  showLoadPage();
 	  socket = attemptConnection();
 });

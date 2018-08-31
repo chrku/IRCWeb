@@ -27,9 +27,10 @@ public class IRCMessageSender {
 		this.messageQueue =  new LinkedList<byte[]>();
 	}
 	
-	public void addMessage(byte[] msg, String id) throws IOException {
+	public synchronized void addMessage(byte[] msg, String id) throws IOException {
 		// Register that we are ready to write and add message to queue
-		key = channel.register(writeSelector, SelectionKey.OP_WRITE);
+		if (key == null)
+			key = channel.register(writeSelector, SelectionKey.OP_WRITE);
 		key.attach(id);
 		messageQueue.add(msg);
 	}
@@ -38,8 +39,8 @@ public class IRCMessageSender {
 		// Attempt to write the messages
 		while (!messageQueue.isEmpty()) {
 			// Get a message from the queue and attempt to write it
-			byte[]  byteMsg = messageQueue.poll();
-			ByteBuffer curMsg = ByteBuffer.wrap(messageQueue.poll());
+			byte[] byteMsg = messageQueue.poll();
+			ByteBuffer curMsg = ByteBuffer.wrap(byteMsg);
 			int numWritten = channel.write(curMsg);
 			
 			// Check if the whole message was written
@@ -48,11 +49,6 @@ public class IRCMessageSender {
 				messageQueue.addFirst(remaining);
 				break;
 			}
-		}
-		// Check if we have written all messages, if yes,
-		// deregister selector
-		if (messageQueue.isEmpty()) {
-			key.cancel();
 		}
 	}
 }

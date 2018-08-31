@@ -12,8 +12,7 @@ public class IRCMessageHandler {
 	private HashMap<String, IRCConnection> connections;
 	private HashMap<String, IRCMessageSender> senders;
 	
-	private static final byte[] MSG_SUFFIX = "\r\n".getBytes();
-	private static final byte[] PING_RESPONSE = ("PONG" + MSG_SUFFIX).getBytes(); 
+	private static final byte[] PING_RESPONSE = "PONG\r\n".getBytes(); 
 	
 	public IRCMessageHandler(HashMap<String, IRCConnection> connections, HashMap<String, IRCMessageSender> senders) {
 		this.connections = connections;
