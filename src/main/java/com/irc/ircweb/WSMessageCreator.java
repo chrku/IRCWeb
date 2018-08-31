@@ -101,11 +101,16 @@ public class WSMessageCreator {
 	public TextMessage newMessages(ArrayList<IRCMessage> messages) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		JsonGenerator gen = factory.createGenerator(out);
-		
+		gen.setCodec(mapper);
+
 		// Write the message
 		gen.writeStartObject();
-		gen.writeStringField(typeString, "NO-NEW-MESSAGES");
-		mapper.writeValue(out, messages);
+		gen.writeStringField(typeString, "NEW-MESSAGES");
+		gen.writeArrayFieldStart("args");
+		for (IRCMessage msg : messages) {
+			gen.writeObject(msg);
+		}
+		gen.writeEndArray();
 		gen.writeEndObject();
 		gen.close();
 		

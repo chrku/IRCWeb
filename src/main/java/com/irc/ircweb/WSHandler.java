@@ -87,7 +87,8 @@ public class WSHandler extends TextWebSocketHandler {
 				session.sendMessage(creator.generateConnectionError());
 				return;
 			}
-
+			// Forward message to server
+			handler.sendMessage(id, jsonData.get("message").asText().getBytes());
 			break;
 		case "READ-MESSAGES":
 			// Check if the connection has not yet been processed

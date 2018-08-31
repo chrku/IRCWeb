@@ -11,7 +11,7 @@ body, html {
 	display: flex;
 	align-items: center;
     justify-content: center;
-    visibility: hidden;
+    display: none;
 }
 
 .login-box {
@@ -61,7 +61,7 @@ body, html {
   	margin-left: -100px;
   	top: 50%;
   	left: 50%;
-  	visibility: hidden;
+  	display: none;
   	text-align: center;
   	color: white;
 }
@@ -87,10 +87,46 @@ body, html {
   	top: 50%;
   	left: 50%;
   	color: white;
-  	visibility: hidden;
+  	display: none;
 }
 
 .error {
-	visibility: hidden;
+	display: none;
 	color: red;
+}
+
+.chat-page {
+	display: flex;
+	flex-direction: column;
+	display: none;
+	height: 100%;
+}
+
+.chat-area {
+	height: 95%;
+	min-height: 70%;
+	max-height: 95%;
+	margin: 20px;
+	background-color: white;
+	border-radius: 10px;
+	border: 2px solid black;
+	overflow-y: scroll;
+	vertical-align: bottom;
+}
+
+.chat-input {
+	margin: 0px 20px 20px 20px;
+}
+
+.sender {
+	font-weight: bold;
+	color: #cc9900;
+}
+
+.text-chat {
+	color: black;
+}
+
+.chat-node {
+	margin: 5px;
 }

@@ -82,6 +82,21 @@ public class IRCConnectionHandler extends Thread {
 			sendPendingMessages();
 		}
 	}
+	
+	public void sendMessage(String id, byte[] message) {
+		// Wake up read selector in case we want to send a message but
+		// it is stuck waiting for messages
+		readSelector.wakeup();
+		
+		IRCMessageSender sender = senders.get(id);
+		try {
+			sender.addMessage(message, id);
+		} catch (IOException e) {
+			// This can throw a closed channel exception, in 
+			// which case we kill the connection
+			removeConnection(id);
+		}
+	}
 
 	private void sendPendingMessages() {
 		int amount;
@@ -135,7 +150,7 @@ public class IRCConnectionHandler extends Thread {
 	 */
 	private void readSockets() {
 		try {
-			int readableChannels = readSelector.select(100);
+			int readableChannels = readSelector.select();
 			if (readableChannels > 0) {
 				System.out.println("New messages");
 				// Get all channels that can be read from
