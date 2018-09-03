@@ -12,28 +12,43 @@
 </head>
 
 <body>
-	<div class="login-page" id="login">
-		<div class="login-box">
-			Server hostname <input type="text" id="hostname"> <br>
-			Port <input type="text" id="port"> <br>
-			Nickname <input type="text" id="nick"> <br>
-			Realname (optional) <input type="text" id="realname"> <br>
-			<p class="error" id="login-error"> You need to enter data into the required fields. </p>
-			<button id="submit-login" onclick="connect()">Submit</button>
+	<div class="container" id="container">
+		<div class="serverlist" id="serverlist">
+			<button onclick="addServer()"> Add new server </button>
+		</div>
+		<div class="server-container" id="server-container">
+			<div>
+				<h2> Welcome to the IRCWeb web IRC client </h2>
+				<p> To connect to a server click the button on the right </p>
+			</div>
 		</div>
 	</div>
-	<div class="loading" id="spin">
+	<div class="login-page" id="login-page">
+		<div id="login-box" class="login-box">
+		<h2> Join server</h2>
+		Server address: <input type="text" /> <br />
+		Server port: <input type="text" /> <br />
+		Nickname: <input type="text" /> <br />
+		Real name (optional) <input type="text" /> <br />
+		<button> Submit </button>
+		</div>
+	</div>
+	<div class="loading-page" id="loading-page">
 		<div class="loading-spinner">
 		</div>
 		<p> Connecting, please wait... </p>
 	</div>
-	<div class="failure-page" id="failure">
-		<p> Failed to connect to server. </p>
+	<div class="failure-page" id="failure-page-ws">
+		<p> Failed to connect to bridge server. </p>
+	</div>
+	<div class="failure-page" id="failure-page-irc">
+		<p> Failed to connect to IRC server. </p>
 	</div>
 	<div class="chat-page" id="chat-page">
 		<div class="chat-area" id="chat-area">
 		</div>
-		<input type="text" id="chat-input" class="chat-input">
+		<div class="sidebar" id="sidebar">
+		</div>
 	</div>
 </body>
 

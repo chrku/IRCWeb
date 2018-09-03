@@ -7,6 +7,10 @@ let nick = null;
 // Unique id for each connection
 let IDCounter = 0;
 
+// UI state management
+let pages = {};
+let currentId = 0;
+
 // Get the url for the WS protocol
 function getWSURL() {
     let ws = "";
@@ -18,6 +22,119 @@ function getWSURL() {
     }
     ws += window.location.host + "/ws";
     return ws;
+}
+
+// Update UI state
+function updateUIState() {
+	let rootNode = document.getElementById("server-container");
+	rootNode.firstElementChild.remove();
+	rootNode.appendChild(pages[currentId].activePage);
+}
+
+function respondToMessage(event) {
+	console.log(event.data);
+	// Message format is JSON
+	let response = JSON.parse(event.data);
+	switch (response.type) {
+	case "WS-CONNECTION-SUCCESS":
+		this.UINode.activePage = this.UINode.loginPage;
+		break;
+	case "NEW-MESSAGES":
+		if (this.IRCConnectionEstablished == false) {
+			this.IRCConnectionEstablished = true;
+		}
+		response.args.forEach(handleMessage);
+		break;
+	case "NO-NEW-MESSAGES":
+		if (this.IRCConnectionEstablished == false) {
+			this.IRCConnectionEstablished = true;
+		}
+		break;
+	case "FAILURE-CONNECTION-ERROR":
+    	showFailurePage();
+		break;
+	}
+	if (this.IRCConnectionEstablished && this.showChatWindow == false) {
+		this.showChatWindow = true;
+		showChatPage();
+		setupInitialHandshake(this);
+	}
+}
+
+function respondToFailure(socket) {
+	this.UINode.activePage = 
+}
+
+//Attempt to connect to WS server
+function attemptConnection(UINode) {
+
+	// Create web socket
+	let url = getWSURL();
+    let socket = new WebSocket(url);
+    socket.UINode = UINode;
+    
+    // Set up callbacks
+    socket.onmessage = respondToMessage.bind(socket);
+    
+    socket.onclose = function() {
+    	showFailurePage();
+    }
+    
+    socket.onerror = function() {
+    	showFailurePage();
+    }
+
+    return socket;
+}
+
+function displayServer(event) {
+	// Get the server display root node
+	let rootNode = document.getElementById("server-container");
+	rootNode.firstElementChild.remove();
+	rootNode.appendChild(pages[this.id].activePage);
+}
+
+// Add a server element to the server list
+function addServer() {
+	
+	// Add a new server to the list
+	let serverListNode = document.getElementById("serverlist");
+	let serverNode = document.createElement("div");
+	let serverInitialText = document.createTextNode("New Server " + IDCounter);
+	serverNode.appendChild(serverInitialText);
+	serverNode.setAttribute("id", IDCounter);
+	serverNode.addEventListener("click", displayServer)
+	serverListNode.appendChild(serverNode);
+	
+	// Clone UI state and make pages visible
+	let loginNode = document.getElementById("login-page").cloneNode(true);
+	loginNode.style.display = "flex";
+	let failureNodeWS = document.getElementById("failure-page-ws").cloneNode(true);
+	failureNode.style.display = "block";
+	let failureNodeIRC = document.getElementById("failure-page-irc").cloneNode(true);
+	failureNode.style.display = "block";
+	let loadingNode = document.getElementById("loading-page").cloneNode(true);
+	loadingNode.style.display = "block";
+	
+	// Create new server state object
+	let UINode = {
+			// Active page: Currently displayed page for this server
+			activePage: loginNode,
+			// Login page: DOM node representing the login page
+			loginPage: loginNode,
+			// Failure page representing failure in WS
+			failurePageWS: failureNodeWS,
+			// ... and IRC
+			failurePageIRC: failureNodeIRC,
+			// Loading spinner
+			loadingPage: loadingNode
+	}
+	
+	pages[IDCounter] = UINode;
+	
+	IDCounter += 1;
+	// Create new connection to central server
+	attemptConnection(UINode);
 }
 
 
@@ -169,60 +286,7 @@ function setupInitialHandshake(socket) {
 	socket.send(JSON.stringify(user_json));
 }
 
-// Attempt to connect to WS server
-function attemptConnection() {
 
-	let url = getWSURL();
-    // We use a custom protocol
-    let socket = new WebSocket(url);
-    
-    socket.id = IDCounter;
-    socket.IRCConnectionEstablished = false;
-    socket.showChatWindow = false;
-    socket.initialHandshakeCompleted = false;
-    
-    IDCounter += 1;
-    
-    socket.onmessage = function(event) {
-    	console.log(event.data);
-    	// Message format is JSON
-    	let response = JSON.parse(event.data);
-    	switch (response.type) {
-    	case "WS-CONNECTION-SUCCESS":
-    		showLoginPage();
-    		break;
-    	case "NEW-MESSAGES":
-    		if (this.IRCConnectionEstablished == false) {
-    			this.IRCConnectionEstablished = true;
-    		}
-    		response.args.forEach(handleMessage);
-    		break;
-    	case "NO-NEW-MESSAGES":
-    		if (this.IRCConnectionEstablished == false) {
-    			this.IRCConnectionEstablished = true;
-    		}
-    		break;
-    	case "FAILURE-CONNECTION-ERROR":
-        	showFailurePage();
-    		break;
-    	}
-    	if (this.IRCConnectionEstablished && this.showChatWindow == false) {
-    		this.showChatWindow = true;
-    		showChatPage();
-    		setupInitialHandshake(this);
-    	}
-    }
-    
-    socket.onclose = function() {
-    	showFailurePage();
-    }
-    
-    socket.onerror = function() {
-    	showFailurePage();
-    }
-
-    return socket;
-}
 
 function connect() {
 	
@@ -255,11 +319,3 @@ function checkMessages() {
 	let ws_query = JSON.stringify(message_query);
 	socket.send(ws_query);
 }
-
-/*
- * This will fire once the DOM is initialized
- */
-document.addEventListener("DOMContentLoaded", function() {
-	  showLoadPage();
-	  socket = attemptConnection();
-});

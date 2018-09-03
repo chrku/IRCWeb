@@ -1,8 +1,36 @@
 
 body, html {
 	height: 100%;
+	width: 100%;
 	margin: 0;
-	background-color: #0a1429;
+}
+
+.container {
+	width: 100%;
+	height: 100%;
+	float: left;
+	display: flex;
+	flex-direction: row;
+	background-color: white;
+	margin: 0;
+	overflow: hidden;
+}
+
+.serverlist {
+	width: 20%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	border: 2px solid gray;
+	margin: 0;
+}
+
+.server-container {
+	height: 100%;
+	width: 80%;
+	flex-direction: row;
+	border: 2px solid gray;
+	margin: 0;
 }
 
 .login-page {
@@ -20,31 +48,27 @@ body, html {
 	align-items: center;
     justify-content: center;
 	margin: auto;
-	border: 5px solid black;
-	border-radius: 20px;
-	padding: 20px;
+	padding: 40px;
 	height: 100%;
-	background-color: gray;
 }
 
 .login-box > input {
 	clear: both;
 	margin: 5px;
-	background-color: #3366cc;
-	border-radius: 7px;
-	border-color: black;
-	border-style: solid;
+	padding: 10px;
+	background-color: white;
+	border: 1px solid black;
 	color: black;
 }
 
 .login-box > button {
-	background-color: #3366cc;
+	background-color: #8fb4ef;
 	border-radius: 7px;
 	border-color: black;
 	border-style: solid;
-	padding: 5px;
+	padding: 15px;
 	margin: 10px;
-	color: black;
+	color: white;
 }
 
 @keyframes spinner {
