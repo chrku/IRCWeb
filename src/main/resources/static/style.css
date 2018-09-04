@@ -76,7 +76,7 @@ body, html {
 	to {transform: rotate(360deg);}
 }
 
-.loading {
+.loading-page {
 	position: absolute;
 	z-index: 15;
 	height: 100px;
@@ -114,43 +114,55 @@ body, html {
   	display: none;
 }
 
-.error {
-	display: none;
-	color: red;
-}
-
 .chat-page {
-	display: flex;
-	flex-direction: column;
-	display: none;
-	height: 100%;
+  height: 100%;
+  width: 100%;
+  display: none;
+  flex-direction: row;
 }
 
 .chat-area {
-	height: 95%;
-	min-height: 70%;
-	max-height: 95%;
-	margin: 20px;
-	background-color: white;
-	border-radius: 10px;
-	border: 2px solid black;
-	overflow-y: scroll;
-	vertical-align: bottom;
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  height: 100%;
 }
 
-.chat-input {
-	margin: 0px 20px 20px 20px;
+.message-window {
+  height: 97%;
+  border: 1px solid black;
 }
 
-.sender {
-	font-weight: bold;
-	color: #cc9900;
+.chat-area > input {
+  min-height: 20px;
+  height: 3%;
 }
 
-.text-chat {
-	color: black;
+.sidebar {
+  width: 20%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.chat-node {
+.user-window {
+  width: 100%;
+  height: 70%;
+}
+
+.channel-window {
+  width: 100%;
+  height: 27%;
+}
+
+.buttons {
+	display: flex;
+	flex-direction: row;
+	height: 3%;
 	margin: 5px;
+}
+
+.buttons > button {
+	height: 100%;
+	width: 50%;
 }

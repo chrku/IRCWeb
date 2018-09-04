@@ -32,7 +32,7 @@ public class IRCMessageParser {
 	 * @param args Arguments of the message
 	 * @return int Index after parsing
 	 */
-	private int handleMessagePrefix(int curIndex, byte[] message, ArrayList<String> args) {
+	private int handleMessagePrefix(int curIndex, byte[] message, IRCMessage newMessage) {
 		// Messages can have an optional prefix
 		// As a client, this can pretty much be ignored
 		if (message[curIndex] == ':') {
@@ -45,7 +45,7 @@ public class IRCMessageParser {
 			}
 			// Extract the name and add it as a first argument
 			String arg = new String(Arrays.copyOfRange(message, argStart, curIndex));
-			args.add(arg);
+			newMessage.setSender(arg);
 			
 			// and then skip the other spaces, as there can be arbitrarily 
 			// many
@@ -53,7 +53,7 @@ public class IRCMessageParser {
 		}
 		else {
 			// Add empty sender in absence
-			args.add("");
+			newMessage.setSender("");
 		}
 		return curIndex;
 	}
@@ -65,9 +65,11 @@ public class IRCMessageParser {
 	 * @param message message to be parsed
 	 * @param args message arguments
 	 */
-	private void parseArgs(int curIndex, byte[] message, ArrayList<String> args) {
+	private void parseArgs(int curIndex, byte[] message, IRCMessage newMessage) {
 
 		curIndex = skipSpaces(curIndex, message);
+		
+		ArrayList<String> args = new ArrayList<String>();
 		
 		int argStart = curIndex;
 		
@@ -106,9 +108,10 @@ public class IRCMessageParser {
 				}
 				
 				String arg = new String(Arrays.copyOfRange(message, argStart, curIndex));
-				args.add(arg);
+				newMessage.setTrailer(arg);
 			}
 		}
+		newMessage.setArgs(args);
 	}
 	
 	/*
@@ -121,17 +124,17 @@ public class IRCMessageParser {
 	public IRCMessage parseMessage(byte[] message) {
 
 		int curIndex = 0;
-		ArrayList<String> args = new ArrayList<String>();
+		IRCMessage newMessage = new IRCMessage();
 		
 		if (message.length == 0) {
-			return new IRCMessage(null, null);
+			return new IRCMessage(null, null, null, null);
 		}
 		
-		curIndex = handleMessagePrefix(curIndex, message, args);
+		curIndex = handleMessagePrefix(curIndex, message, newMessage);
 		
 		// Check if we reached the end
 		if (curIndex >= message.length) {
-			return new IRCMessage(null, null);
+			return new IRCMessage(null, null, null, null);
 		}
 
 		// Next comes the command string
@@ -145,11 +148,12 @@ public class IRCMessageParser {
 		
 		// Check for valid message
 		if (command == "") {
-			return new IRCMessage(null, null);
+			return new IRCMessage(null, null, null, null);
 		}
 		
-		parseArgs(curIndex, message, args);
+		newMessage.setType(command);
+		parseArgs(curIndex, message, newMessage);
 		
-		return new IRCMessage(command, args);
+		return newMessage;
 	}
 }

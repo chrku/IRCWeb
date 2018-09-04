@@ -65,7 +65,8 @@ public class IRCMessageAssembler {
 		
 		// Read some data into the buffer
  		buf.clear();
- 		while (channel.read(buf) > 0) {
+ 		int numRead = channel.read(buf);
+ 		while (numRead > 0) {
 			buf.flip();
 			// Read from the socket
 			if (buf.remaining() > 0) {
@@ -92,7 +93,10 @@ public class IRCMessageAssembler {
 			else {
 				buf.clear();
 			}
+			numRead = channel.read(buf);
  		}
+ 		if (numRead == -1)
+ 			throw new IOException();
 	}
 
 	/*

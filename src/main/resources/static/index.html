@@ -30,6 +30,7 @@
 		Server port: <input type="text" /> <br />
 		Nickname: <input type="text" /> <br />
 		Real name (optional) <input type="text" /> <br />
+		<p hidden> Please fill in the required fields </p>
 		<button> Submit </button>
 		</div>
 	</div>
@@ -46,8 +47,19 @@
 	</div>
 	<div class="chat-page" id="chat-page">
 		<div class="chat-area" id="chat-area">
+			<div class="message-window" id="message-window">
+			</div>
+			<input type="text" />
 		</div>
 		<div class="sidebar" id="sidebar">
+			<div class="user-window" id="user-window">
+			</div>
+			<div class="channel-window" id="channel-window">
+			</div>
+			<div class="buttons">
+				<button> Send </button>
+				<button> Join </button>
+			</div>
 		</div>
 	</div>
 </body>

@@ -38,12 +38,13 @@ function respondToMessage(event) {
 	switch (response.type) {
 	case "WS-CONNECTION-SUCCESS":
 		this.UINode.activePage = this.UINode.loginPage;
+		updateUIState();
 		break;
 	case "NEW-MESSAGES":
 		if (this.IRCConnectionEstablished == false) {
 			this.IRCConnectionEstablished = true;
 		}
-		response.args.forEach(handleMessage);
+		response.args.forEach(handleMessage.bind(this));
 		break;
 	case "NO-NEW-MESSAGES":
 		if (this.IRCConnectionEstablished == false) {
@@ -51,18 +52,21 @@ function respondToMessage(event) {
 		}
 		break;
 	case "FAILURE-CONNECTION-ERROR":
-    	showFailurePage();
+		this.UINode.activePage = this.UINode.failurePageIRC;
+		updateUIState();
 		break;
 	}
 	if (this.IRCConnectionEstablished && this.showChatWindow == false) {
 		this.showChatWindow = true;
-		showChatPage();
+		this.UINode.activePage = this.UINode.mainChatPage;
+		updateUIState();
 		setupInitialHandshake(this);
 	}
 }
 
 function respondToFailure(socket) {
-	this.UINode.activePage = 
+	this.UINode.activePage = this.UINode.failurePageWS;
+	updateUIState();
 }
 
 //Attempt to connect to WS server
@@ -75,23 +79,57 @@ function attemptConnection(UINode) {
     
     // Set up callbacks
     socket.onmessage = respondToMessage.bind(socket);
+    socket.onclose = respondToFailure.bind(socket);
+    socket.onerror = respondToFailure.bind(socket);
     
-    socket.onclose = function() {
-    	showFailurePage();
-    }
+    // Set up UI related information
+    socket.showChatWindow = false;
+    socket.IRCConnectionEstablished = false;
     
-    socket.onerror = function() {
-    	showFailurePage();
-    }
+    // Set up socket related callbacks
+    UINode.loginPage.firstElementChild.lastElementChild.addEventListener("click", connectToIRCNetwork.bind(socket));
 
     return socket;
 }
 
 function displayServer(event) {
-	// Get the server display root node
-	let rootNode = document.getElementById("server-container");
-	rootNode.firstElementChild.remove();
-	rootNode.appendChild(pages[this.id].activePage);
+	currentId = this.id;
+	updateUIState();
+}
+
+function showRequiredFields(loginNode) {
+	loginNode.firstElementChild.children[9].removeAttribute("hidden");
+}
+
+function hideRequiredFields(loginNode) {
+	loginNode.firstElementChild.children[9].createAttribute("hidden");
+}
+
+function connectToIRCNetwork() {
+	// Get the values of the input fields
+	let hostname = this.UINode.loginPage.firstElementChild.children[1].value;
+	let port = this.UINode.loginPage.firstElementChild.children[3].value;
+	// Nick and hostname are global since they are needed later
+	let nick = this.UINode.loginPage.firstElementChild.children[5].value;
+	let realname = this.UINode.loginPage.firstElementChild.children[7].value;
+	this.nick = nick;
+	this.realname = realname;
+	
+	
+	if (hostname.length === 0 || port.length === 0 || nick.length === 0) {
+		showRequiredFields(this.UINode.loginPage);
+		return;
+	}
+	
+	// Assemble object from form values
+	let server_query = {type: "CONNECTION-ATTEMPT", "hostname": hostname, "port": port};
+	let ws_query = JSON.stringify(server_query);
+	this.send(ws_query);
+	
+	this.UINode.activePage = this.UINode.loadingPage;
+	updateUIState();
+	
+	setInterval(checkMessages.bind(this), 1000);
 }
 
 // Add a server element to the server list
@@ -110,16 +148,18 @@ function addServer() {
 	let loginNode = document.getElementById("login-page").cloneNode(true);
 	loginNode.style.display = "flex";
 	let failureNodeWS = document.getElementById("failure-page-ws").cloneNode(true);
-	failureNode.style.display = "block";
+	failureNodeWS.style.display = "block";
 	let failureNodeIRC = document.getElementById("failure-page-irc").cloneNode(true);
-	failureNode.style.display = "block";
+	failureNodeIRC.style.display = "block";
 	let loadingNode = document.getElementById("loading-page").cloneNode(true);
 	loadingNode.style.display = "block";
+	let mainChatNode = document.getElementById("chat-page").cloneNode(true);
+	mainChatNode.style.display = "flex";
 	
 	// Create new server state object
 	let UINode = {
 			// Active page: Currently displayed page for this server
-			activePage: loginNode,
+			activePage: loadingNode,
 			// Login page: DOM node representing the login page
 			loginPage: loginNode,
 			// Failure page representing failure in WS
@@ -127,7 +167,9 @@ function addServer() {
 			// ... and IRC
 			failurePageIRC: failureNodeIRC,
 			// Loading spinner
-			loadingPage: loadingNode
+			loadingPage: loadingNode,
+			// Main chat window
+			mainChatPage: mainChatNode
 	}
 	
 	pages[IDCounter] = UINode;
@@ -137,122 +179,45 @@ function addServer() {
 	attemptConnection(UINode);
 }
 
-
-// UI utility functions
-function showLogin() {
-	document.getElementById("login").style.display = "flex";
-}
-
-function hideLogin() {
-	document.getElementById("login").style.display = "none";
-}
-
-function showSpinner() {
-	document.getElementById("spin").style.display = "";
-}
-
-function hideSpinner() {
-	document.getElementById("spin").style.display = "none";
-}
-
-function showFailure() {
-	document.getElementById("failure").style.display = "block";
-}
-
-function hideFailure() {
-	document.getElementById("failure").style.display = "none";
-}
-
-function showLoginError() {
-	document.getElementById("login-error").style.display = "";
-}
-
-function hideLoginError() {
-	document.getElementById("login-error").style.display = "none";
-}
-
-function showChatArea() {
-	document.getElementById("chat-page").style.display = "flex";
-}
-
-function hideChatArea() {
-	document.getElementById("chat-page").style.display = "none";
-}
-
-// UI state functions
-function showLoginPage() {
-	hideSpinner();
-	hideFailure();
-	hideChatArea();
-	showLogin();
-}
-
-function showLoadPage() {
-	hideLogin();
-	hideFailure();
-	hideChatArea();
-	showSpinner();
-}
-
-function showFailurePage() {
-	hideLogin();
-	hideFailure();
-	hideChatArea();
-	showFailure();
-}
-
-function showChatPage() {
-	hideLogin();
-	hideFailure();
-	hideSpinner();
-	showChatArea();
-}
-
-// Functions for displaying messages
-function createDefaultChatNode(sender, text) {
+function createMessageNode(nick, content, error = "") {
+	let messageNode = document.createElement("div");
 	
-	// Create a new node to be displayed
-	let node = document.createElement("div");
+	let timeNode = document.createElement("span");
+	let nickNode = document.createElement("span");
+	let contentNode = document.createElement("span");
+	let errorNode = document.createElement("span");
+	
+	timeNode.classList.add("message-time");
+	nickNode.classList.add("message-nick");
+	contentNode.classList.add("message-content");
+	errorNode.classList.add("message-error");
+	
+	// Get current time (hr/min)
+	let currentTime = new Date();
+	let dateString = "[" + currentTime.getHours() + ":" + currentTime.getMinutes() + "]";
+	
+	// Pad nick field
+	// Maximum nick length according to RFC 1459 is 9
+	// Error codes are 3 digits, no error gets padded
+	let nickString = nick.padStart(9);
+	let errorString = error.padStart(3);
+	
+	let timeTextNode = document.createTextNode(dateString);
+	let nickTextNode = document.createTextNode(nickString);
+	let contentTextNode = document.createTextNode(content);
+	let errorTextNode = document.createTextNode(errorString);
+	
+	timeNode.appendChild(timeTextNode);
+	nickNode.appendChild(nickTextNode);
+	contentNode.appendChild(contentTextNode);
+	errorNode.appendChild(errorTextNode);
 
-	// Sub-nodes
-	let nick_sender = document.createElement("span");
-	let chat_text = document.createElement("span");
+	messageNode.appendChild(timeNode);
+	messageNode.appendChild(nickNode);
+	messageNode.appendChild(errorNode);
+	messageNode.appendChild(contentNode);
 
-	
-	// Formatted text for sender + content
-	let nick_sender_text = document.createTextNode(sender + ": ");
-	let chat_text_text = document.createTextNode(text);
-	nick_sender.classList.add("sender");
-	chat_text.classList.add("text-chat");
-	node.classList.add("chat-node");
-	
-	nick_sender.appendChild(nick_sender_text);
-	chat_text.appendChild(chat_text_text);
-	
-	node.appendChild(nick_sender);
-	node.appendChild(chat_text);
-	
-	return node;
-}
-
-function createTextNode(text) {
-	// Create a new node to be displayed
-	let node = document.createElement("div");
-
-	let chat_text = document.createElement("span");
-	let chat_text_text = document.createTextNode(text);
-	chat_text.classList.add("text-chat");
-	node.classList.add("chat-node");
-	
-	chat_text.appendChild(chat_text_text);
-	
-	node.appendChild(chat_text);
-	
-	return node;
-}
-
-function appendToMainChatWindow(node) {
-	document.getElementById("chat-area").appendChild(node);
+	return messageNode;
 }
 
 //Handle IRC messages
@@ -260,13 +225,12 @@ function handleMessage(message) {
 	switch(message.type) {
 	case "NOTICE":
 		// Create chat node and append it to the chat window
-		appendToMainChatWindow(createDefaultChatNode(message.args[1], message.args[2]));
+		this.UINode.mainChatPage.firstElementChild.firstElementChild.appendChild(createMessageNode(message.args[0], message.trailer));
 		break;
 	// These are all greeting messages
 	// End of MotD/No MotD will be handed separately
 	case "001": case "002": case "003": case "042": case "372": case "374": case "375":
 	case "376":
-		appendToMainChatWindow(createTextNode(message.args[1]));
 	case "004": 
 		break;
 	default:
@@ -286,36 +250,8 @@ function setupInitialHandshake(socket) {
 	socket.send(JSON.stringify(user_json));
 }
 
-
-
-function connect() {
-	
-	// Get the values of the input fields
-	let hostname = document.getElementById("hostname").value;
-	let port = document.getElementById("port").value;
-	// Nick and hostname are global since they are needed later
-	nick = document.getElementById("nick").value;
-	realname = document.getElementById("realname").value;
-	if (hostname.length === 0 || port.length === 0 || nick.length === 0) {
-		showLoginError();
-		return;
-	}
-	
-	hideLoginError();
-	showLoadPage();
-	
-	// Assemble object from form values
-	let server_query = {type: "CONNECTION-ATTEMPT", "hostname": hostname, "port": port};
-	let ws_query = JSON.stringify(server_query);
-	socket.send(ws_query);
-	
-	setInterval(function() {
-		checkMessages();
-	}, 1000);
-}
-
 function checkMessages() {
 	let message_query = {type : "READ-MESSAGES"};
 	let ws_query = JSON.stringify(message_query);
-	socket.send(ws_query);
+	this.send(ws_query);
 }

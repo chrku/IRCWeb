@@ -9,10 +9,33 @@ public class IRCMessage {
 	
 	private String type;
 	private ArrayList<String> args;
+	private String trailer;
+	private String sender;
 	
-	public IRCMessage(String type, ArrayList<String> args2) {
+	public IRCMessage() {
+	}
+	
+	public IRCMessage(String type, ArrayList<String> args2, String trailer, String sender) {
 		this.type = type;
 		this.args = args2;
+		this.trailer = trailer;
+		this.sender = sender;
+	}
+	
+	public String getTrailer() {
+		return trailer;
+	}
+
+	public void setTrailer(String trailer) {
+		this.trailer = trailer;
+	}
+
+	public String getSender() {
+		return sender;
+	}
+
+	public void setSender(String sender) {
+		this.sender = sender;
 	}
 
 	public String getType() {
