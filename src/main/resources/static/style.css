@@ -166,3 +166,33 @@ body, html {
 	height: 100%;
 	width: 50%;
 }
+
+.message-time {
+	white-space: pre;
+	color: #f4b642;
+	font-family: "Courier New", "Lucida Console", monospace;
+	font-weight: bold;
+	margin-right: 1em;
+}
+
+.message-nick {
+	white-space: pre;
+	color: #f48941;
+	font-family: "Courier New", "Lucida Console", monospace;
+	font-weight: bold;
+	margin-right: 1em;
+}
+
+.message-content {
+	white-space: pre;
+	color: black;
+	font-family: Arial, Verdana, sans-serif;
+}
+
+.message-error {
+	white-space: pre;
+	color: red;
+	font-family: "Courier New", "Lucida Console", monospace;
+	font-weight: bold;
+	margin-right: 1em;
+}

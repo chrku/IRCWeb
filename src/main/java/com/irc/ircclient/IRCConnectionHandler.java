@@ -182,7 +182,7 @@ public class IRCConnectionHandler extends Thread {
 							removeConnection(id);
 						}
 					}
-					if (s.isConnectable()) {
+					else if (s.isConnectable()) {
 						System.out.println("[IRC Message Builder] Channel is connectable\n");
 						SocketChannel channel = (SocketChannel) s.channel();
 						String id = (String) s.attachment();

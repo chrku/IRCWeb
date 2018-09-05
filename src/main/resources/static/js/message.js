@@ -69,9 +69,26 @@ function respondToFailure(socket) {
 	updateUIState();
 }
 
+function showChannels(socket) {
+	// RFC 1459 4.2.6, this lists all channels
+	let ws_query = {
+			type: "SEND-IRC-MESSAGE",
+			message: "LIST\r\n"
+	};
+	socket.send(JSON.stringify(ws_query));
+}
+
+function sendToNetwork(event) {
+	// Parse messages; messages beginning with / indicate that the user
+	// wants to send the first argument as a command
+	let sendString = this.UINode.firstElementChild.lastElementChild.value;
+	
+	
+}
+
 //Attempt to connect to WS server
 function attemptConnection(UINode) {
-
+	
 	// Create web socket
 	let url = getWSURL();
     let socket = new WebSocket(url);
@@ -88,6 +105,7 @@ function attemptConnection(UINode) {
     
     // Set up socket related callbacks
     UINode.loginPage.firstElementChild.lastElementChild.addEventListener("click", connectToIRCNetwork.bind(socket));
+    UINode.mainChatPage.firstElementChild.lastElementChild.addEventListener("submit", sendToNetwork.bind(socket));
 
     return socket;
 }
@@ -132,6 +150,14 @@ function connectToIRCNetwork() {
 	setInterval(checkMessages.bind(this), 1000);
 }
 
+// This makes sure IDs are unique
+function applyPreOrderDOMTreeID(ID, root) {
+	root.id = root.id + ID;
+	for (let i = 0; i < root.children.length; ++i) {
+		applyPreOrderDOMTreeID(ID, root.children[i]);
+	}
+}
+
 // Add a server element to the server list
 function addServer() {
 	
@@ -146,14 +172,19 @@ function addServer() {
 	
 	// Clone UI state and make pages visible
 	let loginNode = document.getElementById("login-page").cloneNode(true);
+	applyPreOrderDOMTreeID(IDCounter, loginNode);
 	loginNode.style.display = "flex";
 	let failureNodeWS = document.getElementById("failure-page-ws").cloneNode(true);
+	applyPreOrderDOMTreeID(IDCounter, failureNodeWS);
 	failureNodeWS.style.display = "block";
 	let failureNodeIRC = document.getElementById("failure-page-irc").cloneNode(true);
+	applyPreOrderDOMTreeID(IDCounter, failureNodeIRC);
 	failureNodeIRC.style.display = "block";
 	let loadingNode = document.getElementById("loading-page").cloneNode(true);
+	applyPreOrderDOMTreeID(IDCounter, loadingNode);
 	loadingNode.style.display = "block";
 	let mainChatNode = document.getElementById("chat-page").cloneNode(true);
+	applyPreOrderDOMTreeID(IDCounter, mainChatNode);
 	mainChatNode.style.display = "flex";
 	
 	// Create new server state object
@@ -220,20 +251,36 @@ function createMessageNode(nick, content, error = "") {
 	return messageNode;
 }
 
+function appendToChatWindow(UINode, nick, content, error="") {
+	UINode.mainChatPage.firstElementChild.firstElementChild.appendChild(createMessageNode(nick, content, error));
+}
+
 //Handle IRC messages
 function handleMessage(message) {
 	switch(message.type) {
 	case "NOTICE":
-		// Create chat node and append it to the chat window
-		this.UINode.mainChatPage.firstElementChild.firstElementChild.appendChild(createMessageNode(message.args[0], message.trailer));
+		appendToChatWindow(this.UINode, message.args[0], message.trailer);
 		break;
-	// These are all greeting messages
-	// End of MotD/No MotD will be handed separately
-	case "001": case "002": case "003": case "042": case "372": case "374": case "375":
-	case "376":
-	case "004": 
+	// Channel messages
+	case "321":
+		appendToChatWindow(this.UINode, "SERVER", message.trailer);
+		break;
+	case "322":
+		appendToChatWindow(this.UINode, "SERVER", message.args[0] + " " + message.args[1] + " " + message.trailer);
+		break;
+	case "323":
+		appendToChatWindow(this.UINode, "SERVER", message.trailer);
+		break;
+	// Once we get MOTD we can query users and channels
+	case "375":
+		appendToChatWindow(this.UINode, "MOTD", message.trailer);
+		showChannels(this);
+		break;
+	case "372": case "376":
+		appendToChatWindow(this.UINode, "MOTD", message.trailer);
 		break;
 	default:
+		appendToChatWindow(this.UINode, "SERVER", message.trailer, message.type);
 		break;
 	}
 }
