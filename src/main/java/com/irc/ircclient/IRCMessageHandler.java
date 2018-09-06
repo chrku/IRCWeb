@@ -23,10 +23,12 @@ public class IRCMessageHandler {
 		// Determine what to do based on the message type
 		switch (msg.getType()) {
 		case "PING":
-			senders.get(id).addMessage(PING_RESPONSE, id);
+			if (senders.containsKey(id))
+				senders.get(id).addMessage(PING_RESPONSE, id);
 			break;
 		default:
-			connections.get(id).addMessage(msg);
+			if (connections.containsKey(id))
+				connections.get(id).addMessage(msg);
 			break;
 		}
 	}

@@ -225,7 +225,9 @@ function createMessageNode(nick, content, error = "") {
 	
 	// Get current time (hr/min)
 	let currentTime = new Date();
-	let dateString = "[" + currentTime.getHours() + ":" + currentTime.getMinutes() + "]";
+	let hours = currentTime.getHours().toString();
+	let minutes = currentTime.getMinutes().toString();
+	let dateString = "[" + hours.padStart(2, "0") + ":" + minutes.padStart(2, "0") + "]";
 	
 	// Pad nick field
 	// Maximum nick length according to RFC 1459 is 9
@@ -258,8 +260,26 @@ function appendToChatWindow(UINode, nick, content, error="") {
 //Handle IRC messages
 function handleMessage(message) {
 	switch(message.type) {
+	
 	case "NOTICE":
-		appendToChatWindow(this.UINode, message.args[0], message.trailer);
+		appendToChatWindow(this.UINode, message.sender, message.trailer);
+		break;
+	// Greeting messages
+	case "001": case "002": case "003": case "251": case "255": case "265":
+	case "266":
+		appendToChatWindow(this.UINode, "GREETING", message.trailer);
+		break;
+	case "004":
+		appendToChatWindow(this.UINode, "SERVER", message.args[0] + " " + message.args[1] + " " + message.args[2] + " " + message.args[3]);
+		break;
+	// RPL_ISUPPORT messages
+	// Might be used later, for now just display it
+	case "005":
+		appendToChatWindow(this.UINode, "SERVER", message.args.reduce((acc, c) => acc + " " + c.toString()));
+		break;
+	// Misc. messages (unique ID, num channels...)
+	case "254": case "042":
+		appendToChatWindow(this.UINode, "SERVER", message.args[1] + " " + message.trailer);
 		break;
 	// Channel messages
 	case "321":
