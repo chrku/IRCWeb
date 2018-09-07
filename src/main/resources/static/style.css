@@ -122,11 +122,26 @@ body, html {
   flex-direction: row;
 }
 
+.channel-page {
+  height: 100%;
+  width: 100%;
+  display: none;
+  flex-direction: row;
+}
+
 .chat-area {
   display: flex;
   flex-direction: column;
   
   width: 80%;
+  height: 100%;
+}
+
+.channel-page > .chat-area {
+  display: flex;
+  flex-direction: column;
+  
+  width: 100%;
   height: 100%;
 }
 
@@ -162,18 +177,6 @@ body, html {
   border: 1px solid black;
 }
 
-.buttons {
-	display: flex;
-	flex-direction: row;
-	height: 3%;
-	margin: 5px;
-}
-
-.buttons > button {
-	height: 100%;
-	width: 50%;
-}
-
 .message-time {
 	white-space: pre;
 	color: #f4b642;
@@ -193,7 +196,7 @@ body, html {
 .message-content {
 	white-space: pre;
 	color: black;
-	font-family: Arial, Verdana, sans-serif;
+	font-family: "Courier New", "Lucida Console", monospace;
 }
 
 .message-error {
