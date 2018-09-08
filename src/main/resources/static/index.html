@@ -14,10 +14,10 @@
 <body>
 	<div class="container" id="container">
 		<div class="serverlist" id="serverlist">
-			<button onclick="addServer()"> Add new server </button>
+			<button onclick="addServer()" class="add-server"> Add new server </button>
 		</div>
 		<div class="server-container" id="server-container">
-			<div>
+			<div class="default-page">
 				<h2> Welcome to the IRCWeb web IRC client </h2>
 				<p> To connect to a server click the button on the right </p>
 			</div>
@@ -68,7 +68,14 @@
 			Users:
 			<div class="side-window" id="side-window-channel">
 			</div>
-			<button> Join </button>
+			<button> Message </button>
+		</div>
+	</div>
+	<div class="private-page" id="private-page">
+		<div class="chat-area-private" id="chat-area-private">
+			<div class="message-window" id="message-window-private">
+			</div>
+			<input type="text" />
 		</div>
 	</div>
 </body>

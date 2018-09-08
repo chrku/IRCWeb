@@ -51,25 +51,11 @@ body, html {
 	margin: auto;
 	padding: 40px;
 	height: 100%;
-}
-
-.login-box > input {
-	clear: both;
-	margin: 5px;
-	padding: 10px;
-	background-color: white;
-	border: 1px solid black;
-	color: black;
+	font-family: "Arial", "Verdana", sans-serif;
 }
 
 .login-box > button {
-	background-color: #8fb4ef;
-	border-radius: 7px;
-	border-color: black;
-	border-style: solid;
-	padding: 15px;
 	margin: 10px;
-	color: white;
 }
 
 @keyframes spinner {
@@ -88,12 +74,11 @@ body, html {
   	left: 50%;
   	display: none;
   	text-align: center;
-  	color: white;
 }
 
 .loading-spinner {
 	margin: auto;
-	background-color: white;
+	background-color: powderblue;
 	width: 25px;
 	height: 25px;
 	transform-origin: center;
@@ -111,7 +96,6 @@ body, html {
   	margin-left: -100px;
   	top: 50%;
   	left: 50%;
-  	color: white;
   	display: none;
 }
 
@@ -129,18 +113,23 @@ body, html {
   flex-direction: row;
 }
 
+.private-page {
+  height: 100%;
+  width: 100%;
+  display: none;
+  flex-direction: row;
+}
+
 .chat-area {
   display: flex;
   flex-direction: column;
-  
   width: 80%;
   height: 100%;
 }
 
-.channel-page > .chat-area {
+.chat-area-private { 
   display: flex;
   flex-direction: column;
-  
   width: 100%;
   height: 100%;
 }
@@ -151,7 +140,7 @@ body, html {
   border: 1px solid black;
 }
 
-.chat-area > input {
+.chat-area > input, chat-area-channel > input {
   min-height: 20px;
   height: 3%;
 }
@@ -198,4 +187,27 @@ body, html {
 	font-family: "Courier New", "Lucida Console", monospace;
 	font-weight: bold;
 	margin-right: 1em;
+}
+
+.add-server {
+	margin: 5px;
+}
+
+.server-node {
+	font-family: "Arial", "Verdana", sans-serif;
+	background-color: white;
+	color: black;
+	cursor: pointer;
+	margin: 3px;
+	padding: 1px;
+}
+
+.server-node:hover {
+	background-color: blue;
+	color: white;
+}
+
+.default-page {
+	font-family: "Arial", "Verdana", sans-serif;
+	margin: 20px;
 }

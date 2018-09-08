@@ -61,6 +61,7 @@ function respondToMessage(event) {
 
 function respondToFailure(socket) {
 	this.UINode.activePage = this.UINode.failurePageWS;
+	socket.close();
 	updateUIState();
 }
 
@@ -76,9 +77,102 @@ function showChannels(socket) {
 function sendToNetwork(event) {
 	// Parse messages; messages beginning with / indicate that the user
 	// wants to send the first argument as a command
-	let sendString = this.UINode.firstElementChild.lastElementChild.value;
-	
-	
+	if (event.key == "Enter") {
+		let sendString = this.UINode.mainChatPage.firstElementChild.lastElementChild.value;
+		this.UINode.mainChatPage.firstElementChild.lastElementChild.value = "";
+		sendString = sendString.trimStart();
+		
+		// Extract argument
+		if (sendString[0] == '/') {
+			let commandEnd = sendString.indexOf(' ');
+			if (commandEnd == -1) {
+				commandEnd = sendString.length;
+			}
+			let command = sendString.substr(1, commandEnd);
+			let finalString = command + sendString.substr(commandEnd, sendString.length) + "\r\n";
+			console.log(finalString);
+			let wsQuery = {
+					type: "SEND-IRC-MESSAGE",
+					message: finalString
+			}
+			this.send(JSON.stringify(wsQuery));
+		}
+		else {
+			appendToChatWindow(this.UINode, "CLIENT" , "You can only send commands (starting with '/') from here. Join a channel if you want to chat.");
+		}
+	}
+}
+
+function sendToNetworkChannel(name, event) {
+	// Parse messages; messages beginning with / indicate that the user
+	// wants to send the first argument as a command
+	if (event.key == "Enter") {
+		let sendString = this.UINode.channelWindows[name].firstElementChild.lastElementChild.value;
+		this.UINode.channelWindows[name].firstElementChild.lastElementChild.value = "";
+		sendString = sendString.trimStart();
+		
+		// Extract argument
+		if (sendString[0] == '/') {
+			let commandEnd = sendString.indexOf(' ');
+			if (commandEnd == -1) {
+				commandEnd = sendString.length;
+			}
+			let command = sendString.substr(1, commandEnd);
+			let finalString = command + sendString.substr(commandEnd, sendString.length) + "\r\n";
+			console.log(finalString);
+			let wsQuery = {
+					type: "SEND-IRC-MESSAGE",
+					message: finalString
+			}
+			this.send(JSON.stringify(wsQuery));
+		}
+		else {
+			let finalString = "PRIVMSG " + name + " :" + sendString + "\r\n";
+			createChannelIfNotExistAndAppend(this.UINode, this.nick, sendString);
+			let wsQuery = {
+					type: "SEND-IRC-MESSAGE",
+					message: finalString
+			}
+			console.log(finalString);
+			this.send(JSON.stringify(wsQuery));
+		}
+	}
+}
+
+function sendToNetworkPrivate(name, event) {
+	// Parse messages; messages beginning with / indicate that the user
+	// wants to send the first argument as a command
+	if (event.key == "Enter") {
+		let sendString = this.UINode.privateMessageWindows[name].firstElementChild.lastElementChild.value;
+		this.UINode.privateMessageWindows[name].firstElementChild.lastElementChild.value = "";
+		sendString = sendString.trimStart();
+		
+		// Extract argument
+		if (sendString[0] == '/') {
+			let commandEnd = sendString.indexOf(' ');
+			if (commandEnd == -1) {
+				commandEnd = sendString.length;
+			}
+			let command = sendString.substr(1, commandEnd);
+			let finalString = command + sendString.substr(commandEnd, sendString.length) + "\r\n";
+			console.log(finalString);
+			let wsQuery = {
+					type: "SEND-IRC-MESSAGE",
+					message: finalString
+			}
+			this.send(JSON.stringify(wsQuery));
+		}
+		else {
+			let finalString = "PRIVMSG " + name + " :" + sendString + "\r\n";
+			createPrivateIfNotExistAndAppend(this.UINode, this.nick, sendString);
+			let wsQuery = {
+					type: "SEND-IRC-MESSAGE",
+					message: finalString
+			}
+			console.log(finalString);
+			this.send(JSON.stringify(wsQuery));
+		}
+	}
 }
 
 //This makes sure IDs are unique
@@ -90,27 +184,59 @@ function applyPreOrderDOMTreeID(ID, root) {
 }
 
 function switchToChannelWindow(window, UINode) {
+	currentId = UINode.ID;
 	UINode.activePage = window;
 	updateUIState();
 }
 
+function messageSelectedUser(channelNode, UINode) {
+	let selectedUser = channelNode.selectedUser;
+	if (selectedUser) {
+		let name = selectedUser.name;
+		addNewPrivateWindow(UINode, name);
+	}
+}
+
 function addNewChannelWindow(UINode, channelName) {
+	if (!UINode.channelWindows[channelName]) {
+		// Add new channel window
+		let channelWindowNode = document.getElementById("channel-page").cloneNode(true);
+		channelWindowNode.style.display = "flex";
+		channelWindowNode.firstElementChild.lastElementChild.addEventListener("keydown", function(event) {sendToNetworkChannel.call(UINode.socket, channelName, event);});
+		channelWindowNode.lastElementChild.lastElementChild.addEventListener("click", () => messageSelectedUser(channelWindowNode, UINode));
+		applyPreOrderDOMTreeID(channelName + UINode.ID, channelWindowNode);
+		UINode.channelWindows[channelName] = channelWindowNode;
+		
+		// Add channel to list of subscribed channels
+		let newChannelEntry = document.createElement("div");
+		newChannelEntry.appendChild(document.createTextNode(channelName));
+		newChannelEntry.channelName = channelName;
+		newChannelEntry.addEventListener("click", () => switchToChannelWindow(channelWindowNode, UINode));
+		UINode.channelListNode.appendChild(newChannelEntry);
+		
+		if (!UINode.switchToMainPage)
+			UINode.switchToMainPage = true;
+	}
+}
+
+function addNewPrivateWindow(UINode, name) {
+	if (!UINode.privateMessageWindows[name]) {
+		let privateWindowNode = document.getElementById("private-page").cloneNode(true);
+		privateWindowNode.style.display = "flex";
+		privateWindowNode.firstElementChild.lastElementChild.addEventListener("keydown", function(event) {sendToNetworkPrivate.call(UINode.socket, name, event);} );
+		applyPreOrderDOMTreeID(name + UINode.ID, privateWindowNode);1
+		UINode.privateMessageWindows[name] = privateWindowNode;
 	
-	// Add new channel window
-	let channelWindowNode = document.getElementById("channel-page").cloneNode(true);
-	channelWindowNode.style.display = "flex";
-	applyPreOrderDOMTreeID(channelName + UINode.ID, channelWindowNode);
-	UINode.channelWindows[channelName] = channelWindowNode;
-	
-	// Add channel to list of subscribed channels
-	let newChannelEntry = document.createElement("div");
-	newChannelEntry.appendChild(document.createTextNode(channelName));
-	newChannelEntry.channelName = channelName;
-	newChannelEntry.addEventListener("click", () => switchToChannelWindow(channelWindowNode, UINode));
-	UINode.channelListNode.appendChild(newChannelEntry);
-	
-	if (!UINode.switchToMainPage)
-		UINode.switchToMainPage = true;
+		// Add channel to list of subscribed channels
+		let newChannelEntry = document.createElement("div");
+		newChannelEntry.appendChild(document.createTextNode(name));
+		newChannelEntry.channelName = name;
+		newChannelEntry.addEventListener("click", () => switchToChannelWindow(privateWindowNode, UINode));
+		UINode.channelListNode.appendChild(newChannelEntry);
+		
+		if (!UINode.switchToMainPage)
+			UINode.switchToMainPage = true;
+	}
 }
 
 function joinChannel() {
@@ -143,7 +269,7 @@ function attemptConnection(UINode) {
     
     // Set up socket related callbacks
     UINode.loginPage.firstElementChild.lastElementChild.addEventListener("click", connectToIRCNetwork.bind(socket));
-    UINode.mainChatPage.firstElementChild.lastElementChild.addEventListener("submit", sendToNetwork.bind(socket));
+    UINode.mainChatPage.firstElementChild.lastElementChild.addEventListener("keydown", sendToNetwork.bind(socket));
 	// Initially disable channel join button and add join
 	// channel command
     UINode.mainChatPage.lastElementChild.lastElementChild.disabled = true;
@@ -191,6 +317,8 @@ function connectToIRCNetwork() {
 	this.UINode.activePage = this.UINode.loadingPage;
 	updateUIState();
 	
+	this.UINode.socket = this;
+	
 	setInterval(checkMessages.bind(this), 1000);
 }
 
@@ -203,7 +331,7 @@ function addServer() {
 	let channelListNode = document.createElement("div");
 	let serverInitialText = document.createTextNode("New Server " + IDCounter);
 	serverNode.appendChild(serverInitialText);
-	serverNode.setAttribute("id", IDCounter);
+	serverNode.classList.add("server-node");
 	serverListNode.appendChild(serverNode);
 	serverListNode.appendChild(channelListNode);
 	
@@ -249,7 +377,11 @@ function addServer() {
 			
 			ID: IDCounter,
 			
-			switchToMainPage: false
+			switchToMainPage: false,
+			
+			privateMessageWindows: {},
+			
+			socket: null
 	}
 	
 	serverNode.addEventListener("click", displayServer.bind(UINode));
@@ -321,6 +453,14 @@ function setSelectedChannel(UINode, channelNode) {
 	channelNode.style.backgroundColor = "blue";
 }
 
+function setSelectedUser(channelWindow, nameElement) {
+	if (channelWindow.selectedUser)
+		channelWindow.selectedUser.style.backgroundColor = "";
+	
+	channelWindow.selectedUser = nameElement;
+	nameElement.style.backgroundColor = "blue";
+}
+
 function appendToChannelWindow(UINode, channelName) {
 	let channelNode = document.createElement("div");
 	channelNode.appendChild(document.createTextNode(channelName));
@@ -336,7 +476,7 @@ function clearChannelWindow(UINode) {
 	}
 }
 
-function createIfNotExistAndAppend(UINode, channelName, nick, content) {
+function createChannelIfNotExistAndAppend(UINode, channelName, nick, content) {
 	if (UINode.channelWindows[channelName])
 		appendToWindow(UINode.channelWindows[channelName], nick, content);
 	else {
@@ -345,12 +485,23 @@ function createIfNotExistAndAppend(UINode, channelName, nick, content) {
 	}
 }
 
+function createPrivateIfNotExistAndAppend(UINode, nick, content) {
+	if (UINode.privateMessageWindows[nick]) 
+		appendToWindow(UINode.privateMessageWindows[nick], nick, content);
+	else {
+		addNewPrivateWindow(UINode, nick);
+		appendToWindow(UINode.privateMessageWindows[nick], nick, content);
+	}
+}
+
 function addNamesToChannelUserList(UINode, channelName, names) {
 	console.log(names.split(" "));
 	if (UINode.channelWindows[channelName]) {
-		nameList = names.split(" ");
+		let nameList = names.split(" ");
 		for (let i = 0; i < nameList.length; ++i) {
-			nameElement = document.createElement("div");
+			let nameElement = document.createElement("div");
+			nameElement.addEventListener("click", () => setSelectedUser(UINode.channelWindows[channelName], nameElement));
+			nameElement.name = nameList[i];
 			nameElement.appendChild(document.createTextNode(nameList[i]));
 			UINode.channelWindows[channelName].lastElementChild.firstElementChild.appendChild(nameElement);
 		}
@@ -365,14 +516,25 @@ function handleMessage(message) {
 		appendToChatWindow(this.UINode, message.sender, message.trailer);
 		break;
 	case "PRIVMSG":
-		createIfNotExistAndAppend(this.UINode, message.args[0], message.sender.substr(0, message.sender.indexOf("!")), message.trailer);
+		// Handle private messages
+		if (message.args[0] == this.nick) {
+			createPrivateIfNotExistAndAppend(this.UINode, message.sender.substr(0, message.sender.indexOf("!")), message.trailer);
+			break;
+		}
+		createChannelIfNotExistAndAppend(this.UINode, message.args[0], message.sender.substr(0, message.sender.indexOf("!")), message.trailer);
 		break;
 	case "JOIN":
-		createIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
-				message.sender.substr(0, message.sender.indexOf("!")) + " has joined the channel");
+		if (message.trailer) {
+			createChannelIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
+					message.sender.substr(0, message.sender.indexOf("!")) + " has joined the channel");
+		}
+		else {
+			createChannelIfNotExistAndAppend(this.UINode, message.args[0], "SERVER",
+					message.sender.substr(0, message.sender.indexOf("!")) + " has joined the channel");
+		}
 		break;
 	case "PART":
-		createIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
+		createChannelIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
 				message.sender.substr(0, message.sender.indexOf("!")) + " has left the channel");
 		break;
 	// Greeting messages
@@ -429,7 +591,11 @@ function handleMessage(message) {
 function setupInitialHandshake(socket) {
 	let nick_irc_message = "NICK " + socket.nick + "\r\n";
 	let nick_json = {type: "SEND-IRC-MESSAGE", message: nick_irc_message};
-	let user_irc_message = "USER webirc webirc webirc :" + socket.realname + "\r\n";
+	let realname = socket.realname;
+	if (realname === "") {
+		realname = '*';
+	}
+	let user_irc_message = "USER webirc webirc webirc :" + realname + "\r\n";
 	let user_json = {type: "SEND-IRC-MESSAGE", message: user_irc_message};
 	socket.send(JSON.stringify(nick_json));
 	socket.send(JSON.stringify(user_json));
