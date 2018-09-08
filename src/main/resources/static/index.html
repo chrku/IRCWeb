@@ -25,13 +25,13 @@
 	</div>
 	<div class="login-page" id="login-page">
 		<div id="login-box" class="login-box">
-		<h2> Join server</h2>
-		Server address: <input type="text" /> <br />
-		Server port: <input type="text" /> <br />
-		Nickname: <input type="text" /> <br />
-		Real name (optional) <input type="text" /> <br />
-		<p hidden> Please fill in the required fields </p>
-		<button> Submit </button>
+			<h2> Join server</h2>
+			Server address: <input type="text" /> <br />
+			Server port: <input type="text" /> <br />
+			Nickname: <input type="text" /> <br />
+			Real name (optional) <input type="text" /> <br />
+			<p hidden> Please fill in the required fields </p>
+			<button> Submit </button>
 		</div>
 	</div>
 	<div class="loading-page" id="loading-page">
@@ -52,18 +52,23 @@
 			<input type="text" />
 		</div>
 		<div class="sidebar" id="sidebar">
-			<div class="user-window" id="user-window">
-			</div>
-			<div class="channel-window" id="channel-window">
+			Channels:
+			<div class="side-window" id="side-window">
 			</div>
 			<button> Join </button>
 		</div>
 	</div>
 	<div class="channel-page" id="channel-page">
-		<div class="chat-area" id="chat-area">
-			<div class="message-window" id="message-window">
+		<div class="chat-area" id="chat-area-channel">
+			<div class="message-window" id="message-window-channel">
 			</div>
 			<input type="text" />
+		</div>
+		<div class="sidebar" id="sidebar-channel">
+			Users:
+			<div class="side-window" id="side-window-channel">
+			</div>
+			<button> Join </button>
 		</div>
 	</div>
 </body>

@@ -94,6 +94,25 @@ function switchToChannelWindow(window, UINode) {
 	updateUIState();
 }
 
+function addNewChannelWindow(UINode, channelName) {
+	
+	// Add new channel window
+	let channelWindowNode = document.getElementById("channel-page").cloneNode(true);
+	channelWindowNode.style.display = "flex";
+	applyPreOrderDOMTreeID(channelName + UINode.ID, channelWindowNode);
+	UINode.channelWindows[channelName] = channelWindowNode;
+	
+	// Add channel to list of subscribed channels
+	let newChannelEntry = document.createElement("div");
+	newChannelEntry.appendChild(document.createTextNode(channelName));
+	newChannelEntry.channelName = channelName;
+	newChannelEntry.addEventListener("click", () => switchToChannelWindow(channelWindowNode, UINode));
+	UINode.channelListNode.appendChild(newChannelEntry);
+	
+	if (!UINode.switchToMainPage)
+		UINode.switchToMainPage = true;
+}
+
 function joinChannel() {
 	let channelName = this.UINode.selectedChannel.channelName;
 	// RFC 1459 JOIN command
@@ -101,23 +120,8 @@ function joinChannel() {
 			type: "SEND-IRC-MESSAGE",
 			message: "JOIN " + channelName + "\r\n"
 	};
+	
 	this.send(JSON.stringify(wsQuery));
-	
-	if (!this.UINode.switchToMainPage)
-		this.UINode.switchToMainPage = true;
-	
-	// Add new channel window
-	let channelWindowNode = document.getElementById("channel-page").cloneNode(true);
-	channelWindowNode.style.display = "flex";
-	applyPreOrderDOMTreeID(channelName + this.UINode.ID, channelWindowNode);
-	this.UINode.channelWindows[channelName] = channelWindowNode;
-	
-	// Add channel to list of subscribed channels
-	let newChannelEntry = document.createElement("div");
-	newChannelEntry.appendChild(document.createTextNode(channelName));
-	newChannelEntry.channelName = channelName;
-	newChannelEntry.addEventListener("click", () => switchToChannelWindow(channelWindowNode, this.UINode));
-	this.UINode.channelListNode.appendChild(newChannelEntry);
 }
 
 //Attempt to connect to WS server
@@ -189,7 +193,6 @@ function connectToIRCNetwork() {
 	
 	setInterval(checkMessages.bind(this), 1000);
 }
-
 
 // Add a server element to the server list
 function addServer() {
@@ -323,13 +326,34 @@ function appendToChannelWindow(UINode, channelName) {
 	channelNode.appendChild(document.createTextNode(channelName));
 	channelNode.channelName = channelName;
 	channelNode.addEventListener("click", () => setSelectedChannel(UINode, channelNode));
-	UINode.mainChatPage.lastElementChild.children[1].appendChild(channelNode);
+	UINode.mainChatPage.lastElementChild.firstElementChild.appendChild(channelNode);
 }
 
 function clearChannelWindow(UINode) {
 	let windowNode = UINode.mainChatPage.lastElementChild.children[1];
 	while (windowNode.firstChild) {
 		windowNode.removeChild(windowNode.firstChild);
+	}
+}
+
+function createIfNotExistAndAppend(UINode, channelName, nick, content) {
+	if (UINode.channelWindows[channelName])
+		appendToWindow(UINode.channelWindows[channelName], nick, content);
+	else {
+		addNewChannelWindow(UINode, channelName);
+		appendToWindow(UINode.channelWindows[channelName], nick, content);
+	}
+}
+
+function addNamesToChannelUserList(UINode, channelName, names) {
+	console.log(names.split(" "));
+	if (UINode.channelWindows[channelName]) {
+		nameList = names.split(" ");
+		for (let i = 0; i < nameList.length; ++i) {
+			nameElement = document.createElement("div");
+			nameElement.appendChild(document.createTextNode(nameList[i]));
+			UINode.channelWindows[channelName].lastElementChild.firstElementChild.appendChild(nameElement);
+		}
 	}
 }
 
@@ -341,13 +365,28 @@ function handleMessage(message) {
 		appendToChatWindow(this.UINode, message.sender, message.trailer);
 		break;
 	case "PRIVMSG":
-		if (this.UINode.channelWindows[message.args[0]])
-			appendToWindow(this.UINode.channelWindows[message.args[0]], message.sender.substr(0, message.sender.indexOf("!")), message.trailer);
+		createIfNotExistAndAppend(this.UINode, message.args[0], message.sender.substr(0, message.sender.indexOf("!")), message.trailer);
+		break;
+	case "JOIN":
+		createIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
+				message.sender.substr(0, message.sender.indexOf("!")) + " has joined the channel");
+		break;
+	case "PART":
+		createIfNotExistAndAppend(this.UINode, message.trailer, "SERVER",
+				message.sender.substr(0, message.sender.indexOf("!")) + " has left the channel");
 		break;
 	// Greeting messages
 	case "001": case "002": case "003": case "251": case "255": case "265":
 	case "266":
 		appendToChatWindow(this.UINode, "GREETING", message.trailer);
+		break;
+	// Number of ops
+	case "252":
+		appendToChatWindow(this.UINode, "SERVER", message.args[0] + " " + message.trailer);
+		break;
+	// Channel user list command
+	case "353":
+		addNamesToChannelUserList(this.UINode, message.args[2], message.trailer);
 		break;
 	case "004":
 		appendToChatWindow(this.UINode, "SERVER", message.args[0] + " " + message.args[1] + " " + message.args[2] + " " + message.args[3]);
